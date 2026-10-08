@@ -1,0 +1,4 @@
+interface:
+  display_name: "readable"
+  short_description: "Clear technical writing with context and precision"
+  default_prompt: "Use $readable to make this technical explanation easier to follow while preserving its meaning."

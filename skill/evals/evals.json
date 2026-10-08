@@ -3,12 +3,104 @@
   "evals": [
     {
       "id": 0,
-      "prompt": "<the exact prompt a user would type, e.g. /readable path/to/doc.md>",
-      "expected_output": "<one or two sentences describing what a correct result looks like>",
-      "files": ["<input file path relative to the skill root, or remove the entry>"],
+      "prompt": "Use $readable to make this passage clearer for an engineer unfamiliar with Bayesian optimization: The acquisition function ranks unevaluated candidates by expected improvement under a Gaussian process posterior conditioned on noisy observations, rather than by the posterior mean alone; a point with a worse predicted mean can therefore be selected because uncertainty increases its expected improvement, though this does not guarantee that the next evaluation improves the incumbent.",
+      "expected_output": "A connected explanation introducing unfamiliar concepts while retaining their relationships and qualifications.",
+      "files": [],
       "assertions": [
-        "<one objectively checkable statement about the output>",
-        "<another>"
+        "Explains the acquisition function's role in choosing the next candidate.",
+        "Explains expected improvement relative to the best result found so far.",
+        "Explains the Gaussian process posterior as predictions updated using the noisy observations.",
+        "Preserves that the score uses more than the mean and that a worse mean can still lead to selection.",
+        "States that selecting a candidate does not guarantee an improvement."
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Use $readable to rewrite this agent prompt without performing it: Inspect src/cache.py and tests/test_cache.py, report why simultaneous callers may compute the same missing key more than once despite the existing lock, propose a minimal correction that preserves the public API and error propagation, and do not edit files or run commands that write to disk; if the available code does not establish the cause, say what remains unknown rather than treating a plausible race as proven.",
+      "expected_output": "Only a readable prompt with the same task, constraints, and uncertainty requirements. No embedded task is executed.",
+      "files": [],
+      "assertions": [
+        "Preserves both exact source paths.",
+        "Requires a proposed correction without authorizing its application.",
+        "Preserves the public API and error propagation requirements.",
+        "Preserves the prohibition on file edits and commands that write to disk.",
+        "Preserves the distinction between an established cause and a plausible race.",
+        "The action trace does not inspect the named source files or execute the rewritten task."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use $readable to rewrite this for a technically capable reader new to constraint probabilities. Keep the equation exact: Assuming independence of the constraint events conditional on x, P(feasible|x) = product_{j=1}^{m} P(g_j(x) <= 0|x). Here x is a candidate, m is the number of constraints, and g_j(x) <= 0 means constraint j is satisfied. Dependence between constraint events can invalidate this calculation.",
+      "expected_output": "An explanation of purpose, symbols, and interpretation with the assumption and limitation intact.",
+      "files": [],
+      "assertions": [
+        "Includes the exact literal equation P(feasible|x) = product_{j=1}^{m} P(g_j(x) <= 0|x).",
+        "Explains that feasibility means satisfying all constraints.",
+        "Preserves conditional independence and the dependence caveat.",
+        "Defines x, m, and g_j near the equation."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use $readable fixtures/technical-note.md. Make the note easier to read for an engineer new to constraint modeling. Keep all useful details, metadata, links, anchors, equations, and code. Save the rewritten copy beside the source.",
+      "expected_output": "A clearer sibling technical-note.readable.md, leaving the source unchanged.",
+      "files": ["fixtures/technical-note.md"],
+      "assertions": [
+        "The source remains byte-for-byte unchanged.",
+        "A sibling copy is created without overwriting an existing destination.",
+        "The YAML metadata, fenced Python code, and displayed equation remain byte-for-byte unchanged.",
+        "The relative link ../evals.json and explicit anchor feasibility remain usable.",
+        "Retains conditional independence, its caveat, all numeric values, and the absence of a recorded reason for the batch size.",
+        "Introduces the calculation's purpose before its formal detail."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Use $readable to explain gradient accumulation to an engineer who knows neural networks but has not used it. Explain its purpose and mechanism. Discuss four equal-size microbatches, loss scaling to reproduce the gradient of their combined mean loss, and when the result may differ from processing the combined batch at once.",
+      "expected_output": "A purpose-first explanation of accumulation, one update, averaging, and an important limitation.",
+      "files": [],
+      "assertions": [
+        "Explains reducing memory needed at one time by using smaller microbatches.",
+        "Explains accumulating gradients across four microbatches before one optimizer step.",
+        "Divides each equal-size microbatch mean loss by four, or describes equivalent gradient averaging.",
+        "Keeps gradients between microbatches and clears them at the appropriate update boundary.",
+        "Does not claim unconditional equivalence; names a relevant difference such as batch-dependent operations.",
+        "Does not give an unnecessary neural-network introduction."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Use $readable. I know Python and NumPy; in exactly two sentences explain x.mean(axis=0) for a NumPy array x with shape (8, 3). No code block.",
+      "expected_output": "Two direct sentences describing the operation and result shape.",
+      "files": [],
+      "assertions": [
+        "Uses exactly two sentences and no code block.",
+        "Explains one mean per column, computed across eight rows.",
+        "States the result shape (3,).",
+        "Does not define Python, NumPy, or an array."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Use $readable to clarify this note. Do not add facts about our project: We use a sparse approximation. The validation loss was lower on this run. We chose a batch size of 32.",
+      "expected_output": "A readable note with the same observations and values and no invented reasons.",
+      "files": [],
+      "assertions": [
+        "Keeps the sparse approximation, lower validation loss on this run, and batch size 32.",
+        "Does not claim that the approximation caused the lower loss.",
+        "Does not invent a reason for batch size 32.",
+        "Does not generalize the result beyond this run."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Use $readable to format this exact command as a shell code block and output nothing else: python -m pytest tests/test_cache.py -q",
+      "expected_output": "Only the command in a shell code block, unchanged and unexecuted.",
+      "files": [],
+      "assertions": [
+        "The only output is a shell code block containing python -m pytest tests/test_cache.py -q.",
+        "No prose is added.",
+        "The action trace does not execute the command."
       ]
     }
   ]

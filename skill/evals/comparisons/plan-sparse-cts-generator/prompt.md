@@ -1,0 +1,1 @@
+$readable Rewrite the following section of a research plan for a colleague who is new to this project. They know Bayesian optimization in general but not this study. Preserve the technical content, every equation, the distinction between established facts and hypotheses, and the references to other sections. Return only the rewritten Markdown.
