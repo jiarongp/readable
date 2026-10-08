@@ -1,48 +1,15 @@
 {
- "skill_name": "readable",
- "evals": [
-  {
-   "id": 0,
-   "prompt": "/readable lfbo_sparse_moves_plan.md",
-   "expected_output": "A sibling file lfbo_sparse_moves_plan.readable.md in preserve mode: same facts, decisions, numbers, paths, and open items, restructured with frame/problem/scope, a plan-at-a-glance table, short sentences, defined terms, calibrated claims, and open problems at the end. Zero to three figures with takeaway captions.",
-   "files": [
-    "lfbo_sparse_moves_plan.md"
-   ],
-   "assertions": [
-    "All seven arm config names (lfbo_mlp, lfbo_mlp_dense, lfbo_mlp_sparse, lfbo_mlp_sparse_nomodel, lfbo_mlp_sparse_sens, lfbo_mlp_climb, lfbo_mlp_climb_knobs) appear in the output",
-    "All source file paths (classifier_bo.py, turbo.py, linbo.py, sidecar.py, plot_movement_hvarfner.py, mopta_array.sh, arm_style.py, test_classifier_bo.py) appear in the output",
-    "Decision rules R1, R2, R3 and the 2 SE_pooled threshold appear in the output",
-    "Key numbers survive: 5000 pool points, 0.8 length, 20/124, 0.32 dense width, 0.50 Stage-1 pass threshold, 15 % step-length tolerance, 30 runs, 120 CPU-hours",
-    "All three open items from section 13 appear in the output",
-    "No sentence in the output prose exceeds 30 words (code, tables, and math excluded)",
-    "The output opens with frame, problem, and explicit scope before any detailed section",
-    "The output ends with an open problems section",
-    "Every figure, if any, has a caption stating a takeaway rather than a label, and is referenced in the text",
-    "No claim is introduced that the source does not state"
-   ]
-  },
-  {
-   "id": 1,
-   "prompt": "/readable sparse_move_step_scale.md",
-   "expected_output": "Sibling readable file of a research note (explanation type) with six existing figures: preserve all numbers, tables, config keys, open points, provenance; three-layer mechanism explanations; keep only figures that carry a takeaway, with takeaway captions.",
-   "files": [
-    "sparse_move_step_scale.md",
-    "assets/source/figure-1..6.png"
-   ],
-   "assertions": [
-    "Verdict numbers survive (0.16, 0.25, 175, 158, 210, 3x, 2x)",
-    "All table numbers survive (9 spot-checked cells)",
-    "All nine config keys and function names survive",
-    "The automatic rule's five parameters survive (start d/2, 20 fails, 3 wins, floor 10, L 0.8)",
-    "All four open points survive",
-    "Provenance: four commit hashes and three script names survive",
-    "Pre-registered lines P-mopta08, P-ant-k, Q-ant-final survive",
-    "No prose sentence exceeds 30 words (source has 12)",
-    "Opens with frame, problem, and explicit scope",
-    "Ends with an open problems section before appendices",
-    "Every kept figure has a takeaway caption and is referenced by number in the text",
-    "No claim introduced that the source does not state"
-   ]
-  }
- ]
+  "skill_name": "readable",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "<the exact prompt a user would type, e.g. /readable path/to/doc.md>",
+      "expected_output": "<one or two sentences describing what a correct result looks like>",
+      "files": ["<input file path relative to the skill root, or remove the entry>"],
+      "assertions": [
+        "<one objectively checkable statement about the output>",
+        "<another>"
+      ]
+    }
+  ]
 }
