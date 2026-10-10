@@ -1,1 +1,0 @@
-Explain what passing `bounds` to `scipy.optimize.minimize(..., method="L-BFGS-B")` does during the optimization, and what happens to a coordinate whose lower and upper bound are equal. I am new to this project. I know Python and gradient-based optimization but I have not used SciPy's bounded optimizers.

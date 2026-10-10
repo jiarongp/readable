@@ -1,0 +1,1 @@
+For `x` with shape (8, 3), `x.mean(axis=0)` averages along axis 0, the one of length 8, so that axis disappears and the result has shape (3,): one mean per column. Each of the 3 output values is the average of the 8 entries in that column, whereas `axis=1` would collapse the other axis and return 8 per-row means instead.

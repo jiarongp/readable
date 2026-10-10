@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Line y = x + 1</title>
+<meta name="description" content="A short explainer of y = x + 1 with two hypothetical examples, a plotted line, and a slider that moves a point along it.">
+<style>
+/* Layout: one reading column; the figure sits inside it at a fixed square scale. Cool neutral ground, one teal accent for the line, one warm mark for the movable point. */
+:root{
+  --bg:#F4F6F8; --fg:#1C232A; --fg-muted:#5B6873; --rule:#D5DCE2; --grid:#E3E8EC;
+  --accent:#1F6E8C; --point:#B8521C; --code-bg:#E8ECEF;
+  --font-body:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --font-ui:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161A1E; --fg:#E4E8EB; --fg-muted:#A3ADB5; --rule:#343C44; --grid:#262D33;
+    --accent:#6FB6D4; --point:#F09A68; --code-bg:#22282E; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161A1E; --fg:#E4E8EB; --fg-muted:#A3ADB5; --rule:#343C44; --grid:#262D33;
+  --accent:#6FB6D4; --point:#F09A68; --code-bg:#22282E; color-scheme:dark;
+}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 var(--font-body);
+  padding-block:40px 80px;padding-inline:16px}
+main{max-width:70ch;margin:0 auto}
+h1,h2,h3{font-family:var(--font-ui);line-height:1.2;text-wrap:balance}
+h1{font-size:1.9em;margin-bottom:.2em}
+h2{margin-top:2.5em;padding-top:.6em;border-top:1px solid var(--rule);font-size:1.3em}
+p{margin:.9em 0}
+a{color:var(--accent)}
+a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre{font-family:var(--font-mono);font-size:.92em}
+code:not(pre code){background:var(--code-bg);padding:.1em .3em;border-radius:3px}
+math{font-size:1.05em}
+.math-display{overflow-x:auto;overflow-y:hidden;margin:1.2em 0;text-align:center}
+.math-display math{font-size:1.25em}
+figure{margin:1.6em 0}
+figure svg{max-width:420px;width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-family:var(--font-ui);font-size:.9em;color:var(--fg-muted);margin-top:.6em;line-height:1.5}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;margin:1em 0;font-family:var(--font-ui);font-size:.95em}
+th,td{padding:.4em .9em;border-bottom:1px solid var(--rule);text-align:left;white-space:nowrap}
+th{color:var(--fg-muted);font-weight:600}
+.meta{font-family:var(--font-ui);font-size:.9em;color:var(--fg-muted);margin-top:0}
+nav.toc{font-family:var(--font-ui);font-size:.95em;border:1px solid var(--rule);padding:12px 18px;margin:1.6em 0}
+nav.toc ul{margin:.3em 0;padding-left:1.2em}
+nav.toc li{margin:.2em 0}
+.controls{font-family:var(--font-ui);font-size:.95em;max-width:420px;margin:.9em auto 0;display:flex;flex-direction:column;gap:.4em}
+.controls label{display:flex;align-items:center;gap:.6em}
+.controls label span{min-width:7ch}
+input[type=range]{flex:1;min-width:0;accent-color:var(--point)}
+input[type=range]:disabled{opacity:.5}
+output{display:block;font-variant-numeric:tabular-nums;color:var(--fg)}
+.controls noscript{color:var(--fg-muted)}
+/* Figure marks, colored from the theme tokens so they read in both themes */
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--fg-muted);stroke-width:1.2}
+.tick-label,.axis-label{font-family:var(--font-ui);font-size:12px;fill:var(--fg-muted)}
+.axis-label{font-style:italic;font-size:14px;fill:var(--fg)}
+.line{stroke:var(--accent);stroke-width:2;fill:none;stroke-linecap:round}
+.example{fill:var(--bg);stroke:var(--accent);stroke-width:2}
+.example-label{font-family:var(--font-ui);font-size:12px;fill:var(--fg)}
+.guide{stroke:var(--point);stroke-width:1.2;stroke-dasharray:4 3;opacity:.8}
+.point{fill:var(--point);stroke:var(--bg);stroke-width:2}
+.point-label{font-family:var(--font-ui);font-size:12px;font-weight:600;fill:var(--fg)}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="the-line-y-x-1">The Line <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mi>x</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = x + 1</annotation></semantics></math></h1>
+  <p class="meta">2026-10-10 · 3 min read · explainer with hypothetical examples</p>
+
+  <p>The equation <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mi>x</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = x + 1</annotation></semantics></math> is a rule for turning one number into another: take <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math>, add one, and call the result <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math>. Every pair of numbers that obeys the rule is a point, and all of those points together form a straight line.</p>
+
+  <p>This note works through the rule with two hypothetical examples, <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x = 0</annotation></semantics></math> and <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">x = 2</annotation></semantics></math>, then draws the line and lets you slide <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> between those values to watch a point move along it. The equation and the drawing are plain HTML, so they read without JavaScript; only the slider needs it.</p>
+
+  <nav class="toc" aria-label="Contents">
+    <ul>
+      <li><a href="#the-rule-add-one-to-x">The rule: add one to x</a></li>
+      <li><a href="#two-examples-x-0-and-x-2">Two examples: x = 0 and x = 2</a></li>
+      <li><a href="#the-picture-a-line-through-both-examples">The picture: a line through both examples</a></li>
+      <li><a href="#sliding-x-along-the-line">Sliding x along the line</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="the-rule-add-one-to-x">The rule: add one to <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></h2>
+
+  <p>Whatever <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> is, <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math> is one more:</p>
+
+  <div class="math-display" data-tex="y = x + 1">
+    <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>y</mi><mo>=</mo><mi>x</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = x + 1</annotation></semantics></math>
+  </div>
+
+  <p>Here <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> is the input, a number you choose, and <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math> is the output, the number the rule gives back. The right-hand side, <span data-tex="x + 1"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">x + 1</annotation></semantics></math></span>, says exactly what happens to the input: the only operation is adding 1.</p>
+
+  <p>Because nothing multiplies or divides <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math>, the rule never stretches or shrinks a change. If <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> goes up by some amount, <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math> goes up by the same amount. The two examples below show this with actual numbers.</p>
+
+  <h2 id="two-examples-x-0-and-x-2">Two examples: <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x = 0</annotation></semantics></math> and <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">x = 2</annotation></semantics></math></h2>
+
+  <p>Take <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x = 0</annotation></semantics></math> first, a value chosen only for illustration. Adding one gives <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>+</mo><mn>1</mn><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">0 + 1 = 1</annotation></semantics></math>, so <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = 1</annotation></semantics></math>. The pair (0, 1) is one point that satisfies the rule.</p>
+
+  <p>Now take <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">x = 2</annotation></semantics></math>. Adding one gives <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mo>+</mo><mn>1</mn><mo>=</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">2 + 1 = 3</annotation></semantics></math>, so <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">y = 3</annotation></semantics></math>, and the pair (2, 3) is a second point.</p>
+
+  <div class="table-wrap">
+  <table>
+    <caption class="meta" style="text-align:left;caption-side:bottom;padding-top:.4em">Hypothetical inputs and the outputs the rule gives.</caption>
+    <thead><tr><th scope="col">Input <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></th><th scope="col">Compute <span data-tex="x + 1"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">x + 1</annotation></semantics></math></span></th><th scope="col">Output <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></th><th scope="col">Point</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>0 + 1</td><td>1</td><td>(0, 1)</td></tr>
+      <tr><td>2</td><td>2 + 1</td><td>3</td><td>(2, 3)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Compare the two rows: moving <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> from 0 to 2 moved <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math> from 1 to 3. The input went up by 2, and so did the output. That equal change is why the picture below is a straight line rising at 45 degrees when both axes use the same spacing per unit.</p>
+
+  <h2 id="the-picture-a-line-through-both-examples">The picture: a line through both examples</h2>
+
+  <p>The figure plots <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> across and <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math> up, with the same spacing per unit on both axes. The two examples sit at (0, 1) and (2, 3) as hollow circles, and the line through them is <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mi>x</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = x + 1</annotation></semantics></math>. A filled circle marks a third value, <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">x = 1</annotation></semantics></math>, where the rule gives <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>+</mo><mn>1</mn><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">1 + 1 = 2</annotation></semantics></math>, so that point sits at (1, 2), midway between the examples.</p>
+
+  <figure id="figure-line">
+    <!-- Plot geometry: 64 px per unit on both axes. px = 60 + 64·x, py = 280 − 64·y. -->
+    <svg viewBox="0 0 300 320" width="300" height="320" role="img" aria-labelledby="fig-title fig-desc">
+      <title id="fig-title">The line y = x + 1 with a marked point</title>
+      <desc id="fig-desc">Axes for x from 0 to 3 and y from 0 to 4. A straight line rises from (0, 1) to (3, 4). Hollow circles mark the examples (0, 1) and (2, 3). A filled circle marks the point (1, 2), with dashed guides to both axes.</desc>
+      <!-- grid -->
+      <g class="grid">
+        <line x1="124" y1="24" x2="124" y2="280"/>
+        <line x1="188" y1="24" x2="188" y2="280"/>
+        <line x1="252" y1="24" x2="252" y2="280"/>
+        <line x1="60" y1="216" x2="252" y2="216"/>
+        <line x1="60" y1="152" x2="252" y2="152"/>
+        <line x1="60" y1="88" x2="252" y2="88"/>
+        <line x1="60" y1="24" x2="252" y2="24"/>
+      </g>
+      <!-- axes -->
+      <g class="axis">
+        <line x1="60" y1="280" x2="262" y2="280"/>
+        <line x1="60" y1="280" x2="60" y2="16"/>
+      </g>
+      <g class="tick-label" text-anchor="middle">
+        <text x="60" y="298">0</text>
+        <text x="124" y="298">1</text>
+        <text x="188" y="298">2</text>
+        <text x="252" y="298">3</text>
+      </g>
+      <g class="tick-label" text-anchor="end">
+        <text x="50" y="220">1</text>
+        <text x="50" y="156">2</text>
+        <text x="50" y="92">3</text>
+        <text x="50" y="28">4</text>
+      </g>
+      <text class="axis-label" x="272" y="285">x</text>
+      <text class="axis-label" x="60" y="12" text-anchor="middle">y</text>
+      <!-- the line y = x + 1 from x = 0 to x = 3 -->
+      <line class="line" x1="60" y1="216" x2="252" y2="24"/>
+      <!-- guides for the marked point -->
+      <line id="guide-v" class="guide" x1="124" y1="152" x2="124" y2="280"/>
+      <line id="guide-h" class="guide" x1="60" y1="152" x2="124" y2="152"/>
+      <!-- the two hypothetical examples -->
+      <circle class="example" cx="60" cy="216" r="4.5"/>
+      <text class="example-label" x="70" y="232">(0, 1)</text>
+      <circle class="example" cx="188" cy="88" r="4.5"/>
+      <text class="example-label" x="198" y="104">(2, 3)</text>
+      <!-- the marked point, moved by the slider -->
+      <circle id="point" class="point" cx="124" cy="152" r="6"/>
+      <text id="point-label" class="point-label" x="114" y="142" text-anchor="end">(1, 2)</text>
+    </svg>
+    <div class="controls">
+      <label for="x-slider"><span>x from 0 to 2</span><input type="range" id="x-slider" min="0" max="2" step="0.1" value="1" disabled></label>
+      <output id="x-readout" for="x-slider" aria-live="polite">x = 1, so y = 1 + 1 = 2</output>
+      <noscript>The slider needs JavaScript. Without it, the marked point stays at x = 1.</noscript>
+    </div>
+    <figcaption>Illustration, not measured data. Hollow circles are the two hypothetical examples; the filled circle is the marked point, with dashed guides dropping to its <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> value on the horizontal axis and its <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math> value on the vertical axis. Read the line left to right: each unit to the right is one unit up. The slider moves the marked point along the line.</figcaption>
+  </figure>
+
+  <p>Two features of the line come straight from the equation. Where the line crosses the vertical axis, <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x = 0</annotation></semantics></math> and so <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = 1</annotation></semantics></math>; the <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">+1</annotation></semantics></math> in the rule is the height of that crossing. And the line climbs one unit for every unit it moves right, because adding a constant leaves the size of a change in <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> unchanged when it reaches <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math>.</p>
+
+  <h2 id="sliding-x-along-the-line">Sliding <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> along the line</h2>
+
+  <p>The slider under the figure sets <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math> anywhere from 0 to 2 in steps of 0.1. As you drag it, the readout recomputes <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mi>x</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">y = x + 1</annotation></semantics></math> and the marked point slides along the line, with its guides following. At <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x = 0</annotation></semantics></math> the point lands on the first example, (0, 1); at <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">x = 2</annotation></semantics></math> it lands on the second, (2, 3).</p>
+
+  <p>Every stop in between also lies on the line, and that is the point of the picture. The rule holds for every <math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math>, not only the two values we checked by hand.</p>
+</main>
+
+<script>
+(function () {
+  var slider = document.getElementById('x-slider');
+  var point = document.getElementById('point');
+  var label = document.getElementById('point-label');
+  var guideV = document.getElementById('guide-v');
+  var guideH = document.getElementById('guide-h');
+  var readout = document.getElementById('x-readout');
+  if (!slider || !point || !label || !guideV || !guideH || !readout) { return; }
+
+  // Same geometry as the static SVG: 64 px per unit, origin at (60, 280).
+  var X0 = 60, Y0 = 280, UNIT = 64;
+
+  function fmt(v) { return String(Math.round(v * 10) / 10); }
+
+  function update() {
+    var x = parseFloat(slider.value);
+    var y = x + 1;
+    var px = X0 + UNIT * x;
+    var py = Y0 - UNIT * y;
+    point.setAttribute('cx', px);
+    point.setAttribute('cy', py);
+    guideV.setAttribute('x1', px); guideV.setAttribute('x2', px); guideV.setAttribute('y1', py);
+    guideH.setAttribute('y1', py); guideH.setAttribute('y2', py); guideH.setAttribute('x2', px);
+    label.setAttribute('x', px - 10);
+    label.setAttribute('y', py - 10);
+    label.textContent = '(' + fmt(x) + ', ' + fmt(y) + ')';
+    readout.textContent = 'x = ' + fmt(x) + ', so y = ' + fmt(x) + ' + 1 = ' + fmt(y);
+  }
+
+  slider.addEventListener('input', update);
+  slider.disabled = false;
+  update();
+})();
+</script>
+</body>
+</html>

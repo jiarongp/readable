@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batch Size and Update Frequency</title>
+<meta name="description" content="A hypothetical example, from one unverified source, relating batch size to how often a model's parameters are updated.">
+<meta name="date" content="2026-10-10">
+<style>
+/* Layout: one reading column of about 68 characters; the table sits inside its own scroll box. Cool slate neutrals with a deep teal accent; system serif body, system sans headings. */
+:root{
+  --bg:#F3F5F6; --fg:#1B2227; --fg-muted:#5A6670; --rule:#D3DAE0;
+  --accent:#1F6F78; --code-bg:#E6EBEE;
+  --font-body:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --font-ui:"Avenir Next","Helvetica Neue",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#151A1E; --fg:#E2E7EA; --fg-muted:#9AA6AE; --rule:#2E373E;
+    --accent:#6FC3CC; --code-bg:#1F262B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151A1E; --fg:#E2E7EA; --fg-muted:#9AA6AE; --rule:#2E373E;
+  --accent:#6FC3CC; --code-bg:#1F262B; color-scheme:dark;
+}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 var(--font-body);
+  padding-block:40px 80px;padding-inline:16px}
+main{max-width:68ch;margin:0 auto}
+h1,h2,h3{font-family:var(--font-ui);line-height:1.2;text-wrap:balance;font-weight:600}
+h1{font-size:2rem;margin:0 0 .3em}
+h2{font-size:1.35rem;margin-top:2.5em;padding-top:.6em;border-top:1px solid var(--rule)}
+p{margin:.9em 0}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre{font-family:var(--font-mono);font-size:.92em}
+code:not(pre code){background:var(--code-bg);padding:.1em .3em;border-radius:3px}
+figure{margin:1.6em 0}
+figcaption{font-family:var(--font-ui);font-size:.9em;color:var(--fg-muted);margin-top:.5em}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-family:var(--font-ui);font-size:.95em;min-width:28ch}
+.table-wrap{overflow-x:auto}
+th,td{padding:.4em .9em;border-bottom:1px solid var(--rule);text-align:left}
+th{font-weight:600;color:var(--fg-muted);font-size:.85em;letter-spacing:.02em;text-transform:uppercase}
+td.num,th.num{text-align:right}
+.meta{font-family:var(--font-ui);font-size:.9em;color:var(--fg-muted);margin-top:0}
+nav.toc{font-family:var(--font-ui);font-size:.95em;border:1px solid var(--rule);padding:12px 18px;margin:1.6em 0}
+nav.toc p{margin:0 0 .3em;color:var(--fg-muted);font-size:.85em;letter-spacing:.02em;text-transform:uppercase}
+nav.toc ul{margin:.3em 0;padding-left:1.2em}
+nav.toc li{margin:.2em 0}
+.references li{margin:.4em 0;font-size:.95em}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="batch-size-and-update-frequency">Batch Size and Update Frequency</h1>
+  <p class="meta">2026-10-10 · 2 min read · status: hypothetical example, source unverified</p>
+
+  <p>This note records one hypothetical example about training schedules: selecting a larger batch reduced how often the model's parameters were updated. The example comes from a single source, Example Author (2024), whose venue is unknown and whose result has not been verified.</p>
+
+  <p>The note explains the two terms the example uses, shows the arithmetic that links batch size to the number of updates with labeled hypothetical numbers, and states what the example does and does not support. It adds no findings beyond the one sentence above.</p>
+
+  <nav class="toc" aria-label="Table of contents">
+    <p>Contents</p>
+    <ul>
+      <li><a href="#what-the-example-says">What the example says</a></li>
+      <li><a href="#why-a-larger-batch-means-fewer-updates">Why a larger batch means fewer updates per pass</a></li>
+      <li><a href="#how-much-to-trust-the-example">How much to trust the example</a></li>
+      <li><a href="#references">References</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="what-the-example-says">What the example says</h2>
+
+  <p>In the hypothetical example given by <a href="https://example.org/batch-schedules">Example Author (2024)</a>, selecting a larger batch reduced the update frequency. A <strong>batch</strong> is the set of training examples the model processes before it changes its parameters once. <strong>Update frequency</strong> is how often those parameter changes happen.</p>
+
+  <p>The source text does not say how update frequency was measured, for example per pass over the training data or per unit of time. It also reports no effect on training speed, final accuracy, or anything else. Because the example is hypothetical, it describes a scenario rather than a measured training run.</p>
+
+  <h2 id="why-a-larger-batch-means-fewer-updates">Why a larger batch means fewer updates per pass</h2>
+
+  <p>For a fixed dataset and one pass over it, the number of updates is the dataset size divided by the batch size, so a larger batch gives fewer updates per pass. This follows from the definitions above; it is not a finding from the source. The table shows the arithmetic with made-up numbers.</p>
+
+  <figure>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th class="num">Batch size</th><th class="num">Updates per pass</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">10</td><td class="num">100</td></tr>
+          <tr><td class="num">50</td><td class="num">20</td></tr>
+          <tr><td class="num">100</td><td class="num">10</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figcaption>Illustration with hypothetical values, not measured data. Each row assumes a dataset of 1,000 examples and one pass over it; read down the rows to see the update count fall as the batch grows.</figcaption>
+  </figure>
+
+  <p>This arithmetic covers only updates per pass. Whether a larger batch also means fewer updates per second depends on how long each batch takes to process, and the example says nothing about that.</p>
+
+  <h2 id="how-much-to-trust-the-example">How much to trust the example</h2>
+
+  <p>Treat the example as an illustration, not as evidence. Three limits apply: the example is hypothetical, the venue of the source is unknown, and the result has not been verified. The link in the References section is kept exactly as supplied; it is the only locator available and was not checked while writing this note.</p>
+
+  <p>In particular, the example does not show that larger batches train faster or reach better accuracy. The source, as quoted here, makes no such claim, and this note adds none.</p>
+
+  <h2 id="references">References</h2>
+  <ol class="references">
+    <li>Example Author. “<a href="https://example.org/batch-schedules">Batch schedules</a>.” Venue unknown, 2024. Result not verified. <a href="https://example.org/batch-schedules">https://example.org/batch-schedules</a></li>
+  </ol>
+</main>
+</body>
+</html>
