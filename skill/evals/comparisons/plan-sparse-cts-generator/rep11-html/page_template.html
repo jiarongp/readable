@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="source" content="docs/plan/sparse_cts_plan.md, sections 6.1-6.3 (lines 1098-1192), as of 2026-10-08">
+<meta name="description" content="Sections 6.1 to 6.3 of the sparse CTS plan, rewritten for a colleague who knows Bayesian optimization but is new to the study.">
+<title>Sparse CTS Generator</title>
+<style>
+/* Layout: one reading column of about 68 characters; figures span the column; FACT and HYPOTHESIS
+   labels from the source plan are shown as small inline tags; section numbers are the plan's own. */
+:root{
+  --bg:#F4F6F8; --fg:#1B2129; --fg-muted:#5A6472; --rule:#D5DBE2;
+  --accent:#1F5F8B; --code-bg:#E8ECF0; --tag-bg:#E3E9EF; --aside-bg:#EDF1F5;
+  --font-body:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --font-ui:"Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif;
+  --font-mono:"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A21; --fg:#E3E8ED; --fg-muted:#9AA6B2; --rule:#2C3540;
+    --accent:#7FB3DD; --code-bg:#1E262F; --tag-bg:#232D38; --aside-bg:#1B222B; color-scheme:dark;
+  }
+  :root:not([data-theme="light"]) .fig-light{display:none}
+  :root:not([data-theme="light"]) .fig-dark{display:block}
+}
+:root[data-theme="dark"]{
+  --bg:#141A21; --fg:#E3E8ED; --fg-muted:#9AA6B2; --rule:#2C3540;
+  --accent:#7FB3DD; --code-bg:#1E262F; --tag-bg:#232D38; --aside-bg:#1B222B; color-scheme:dark;
+}
+:root[data-theme="dark"] .fig-light{display:none}
+:root[data-theme="dark"] .fig-dark{display:block}
+.fig-dark{display:none}
+
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 var(--font-body);
+  padding-block:40px 80px;padding-inline:16px}
+main{max-width:68ch;margin:0 auto;min-width:0}
+h1,h2,h3{font-family:var(--font-ui);line-height:1.2;text-wrap:balance;font-weight:600}
+h1{font-size:2rem;margin:0 0 .3em}
+h2{font-size:1.4rem;margin-top:2.6em;padding-top:.7em;border-top:1px solid var(--rule)}
+h3{font-size:1.1rem;margin-top:1.8em}
+p{margin:.9em 0}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre{font-family:var(--font-mono);font-size:.92em}
+code:not(pre code){background:var(--code-bg);padding:.1em .3em;border-radius:3px}
+figure{margin:1.8em 0}
+figure img{max-width:100%;height:auto;display:block}
+figcaption{font-family:var(--font-ui);font-size:.88em;line-height:1.5;color:var(--fg-muted);margin-top:.6em}
+ul,ol{padding-left:1.4em}
+li{margin:.35em 0}
+.meta{font-family:var(--font-ui);font-size:.88em;color:var(--fg-muted);margin:0 0 1.6em}
+nav.toc{font-family:var(--font-ui);font-size:.93em;border:1px solid var(--rule);padding:12px 20px;margin:1.8em 0}
+nav.toc p{margin:0 0 .3em;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.8em;color:var(--fg-muted)}
+nav.toc ul{margin:.3em 0;padding-left:1.2em}
+nav.toc li{margin:.2em 0}
+.tag{font-family:var(--font-ui);font-size:.72em;font-weight:600;letter-spacing:.06em;
+  background:var(--tag-bg);color:var(--fg);padding:.1em .45em;border-radius:3px;vertical-align:.08em;white-space:nowrap}
+.note{background:var(--aside-bg);border-left:3px solid var(--rule);padding:.6em 1em;margin:1.2em 0;font-size:.95em}
+.note p{margin:.4em 0}
+.math-display{overflow-x:auto;overflow-y:hidden;margin:1.1em 0;font-size:1.08em;text-align:center}
+.math-inline math{font-size:1.02em}
+.references li{margin:.5em 0;font-size:.95em}
+@media (max-width:480px){body{font-size:16px}h1{font-size:1.6rem}}
+</style>
+</head>
+<body>
+<main>
+<!-- Source: docs/plan/sparse_cts_plan.md, sections 6.1-6.3 (lines 1098-1192), as of 2026-10-08 -->
+<h1 id="sparse-cts-generator">Sparse CTS Generator</h1>
+<p class="meta">2026-10-10 · {{READ_TIME}} · rewrite of <code>docs/plan/sparse_cts_plan.md</code>, sections 6.1–6.3 (lines 1098–1192), as of 2026-10-08</p>
+
+<p>This note rewrites sections 6.1 to 6.3 of the sparse-CTS research plan for a reader who knows Bayesian optimization but has not followed this study. The plan concerns how a local, trust-region-style Bayesian optimizer should generate the pool of candidate points it scores at each iteration, in a search space with hundreds of coordinates. The question these three sections settle is narrow: when a candidate move changes only $k$ of the $d$ coordinates, what does $k$ actually control?</p>
+
+<p>The sections build one argument. Section 6.1 defines the candidate generator and pins down what $k$ means in it. Section 6.2 shows that $k$ does not set how far a candidate moves in this generator, which is why the value 20 used by TuRBO's perturbation scheme cannot simply be reused. Section 6.3 asks what a randomly chosen support does to the few coordinates that matter, and ends in an extreme-value question. The source labels its statements <span class="tag">FACT</span> and <span class="tag">HYPOTHESIS</span>; those labels are kept here. Cross-references such as §2, §4, Step 0, and Step 3 point to other parts of the full plan, which this note does not reproduce.</p>
+
+<nav class="toc">
+<p>Contents</p>
+<ul>
+  <li><a href="#61-the-generator-and-what-k-means">6.1 The generator, and what k means</a>
+    <ul>
+      <li><a href="#cts-direction-and-distance">CTS chooses a direction and a distance separately</a></li>
+      <li><a href="#raasp-per-coordinate">RAASP decides coordinate by coordinate</a></li>
+      <li><a href="#the-sparse-construction">The sparse construction sits between them</a></li>
+    </ul>
+  </li>
+  <li><a href="#62-why-raasps-20-cannot-be-inherited">6.2 Why RAASP's "20" cannot be inherited</a>
+    <ul>
+      <li><a href="#coordinate-wise-step-grows-with-k">In a coordinate-wise sampler, k also sets the distance</a></li>
+      <li><a href="#unit-direction-step-independent-of-k">In the unit-direction construction, it does not</a></li>
+      <li><a href="#hypothesis-support-size">The first hypothesis and its test</a></li>
+    </ul>
+  </li>
+  <li><a href="#63-what-a-random-support-does">6.3 What a random support does</a>
+    <ul>
+      <li><a href="#setting-active-set">An active set and a random support</a></li>
+      <li><a href="#energy-average">The average energy on the active coordinates does not depend on k</a></li>
+      <li><a href="#energy-distribution">What changes is the distribution</a></li>
+      <li><a href="#extreme-value">An extreme-value question</a></li>
+    </ul>
+  </li>
+  <li><a href="#references">References</a></li>
+</ul>
+</nav>
+
+<h2 id="61-the-generator-and-what-k-means">6.1 The generator, and what $k$ means</h2>
+
+<h3 id="cts-direction-and-distance">CTS chooses a direction and a distance separately</h3>
+
+<p>CTS, the dense candidate generator this plan starts from, builds each candidate from the incumbent by drawing a direction and a distance as two independent random quantities:</p>
+
+$$
+x = c + r v, \qquad r \sim U(0, R), \qquad \lVert v \rVert_2 = 1,
+$$
+
+<p>Here $c$ is the <strong>incumbent</strong>, the best point found so far and the center of the local search. The vector $v$ is a <strong>dense direction</strong>: it has unit length, so it only says which way to go, and "dense" means that in general every one of its $d$ coordinates is nonzero. The scalar $r$ is the distance, drawn independently of $v$ and uniformly between 0 and a radius $R$. A candidate is therefore a point on the ray from $c$ along $v$, at distance $r$.</p>
+
+<p>A hypothetical instance in $d = 3$: with $c = (0, 0, 0)$, $v = (0.48, 0.60, 0.64)$ (which has unit length), and $r = 0.5$, the candidate is $x = (0.24, 0.30, 0.32)$. Its distance from $c$ is exactly $0.5$, whatever $v$ was. That separation of "which way" from "how far" is the property everything below relies on.</p>
+
+<p>Two refinements handle the boundary of the search domain. CTS draws $v$ from a truncated multivariate normal, so that a dense random direction does not point into a nearby wall of the domain, and it caps the permissible radius by both the distance to that wall and a trust-region-like $R_{\max}$. The source flags the exact construction as literature context still to verify, citing <a href="#ref-rashidi2024">Rashidi, Johnstonbaugh &amp; Gao 2024</a>.</p>
+
+<figure>
+{{FIG:fig1_construction|Left: a two-dimensional sketch of one CTS candidate, with the incumbent c, a unit direction arrow v, the candidate x at distance r along it, the R_max circle, and a shaded wall. Right: two candidate pools in d = 2 with the same radial law, one along the axes (k = 1) and one filling the disk (k = 2).}}
+<figcaption>Illustration, not measured data. Left: one CTS candidate in two dimensions. The arrow is the unit direction $v$, the thin line is the distance $r$, and the candidate $x$ sits where they meet; the dashed circle is $R_{\max}$ and the shaded band is a wall that would cap the radius in that direction. Right: two hypothetical pools in $d = 2$ drawn with the same radial law $r \sim U(0, R)$. The points along the axes are $k = 1$ moves; the points filling the disk are $k = 2 = d$ moves. Compare the two: $k$ changes which directions are allowed, not how far the points lie from the center.</figcaption>
+</figure>
+
+<h3 id="raasp-per-coordinate">RAASP decides coordinate by coordinate</h3>
+
+<p>RAASP, the perturbation scheme in the original implementation of TuRBO (<a href="https://arxiv.org/abs/1910.01739">Eriksson et al. 2019</a>, a trust-region Bayesian optimizer), takes the opposite approach. It decides for each coordinate separately whether to perturb it, with probability $\min(1, 20/d)$, and fills the perturbed coordinates with values from Sobol points inside the rectangular trust region. For $d \gg 20$ this means about 20 coordinates move. At $d = 500$, for example, each coordinate moves with probability $0.04$, so a typical candidate changes about 20 of them; at $d = 10$ the probability is 1 and every coordinate moves.</p>
+
+<p>Nothing in RAASP corresponds to a separately drawn distance $r$. How far a candidate moves follows from how many coordinates were perturbed and from the size of the trust-region box they were filled from. Section 6.2 returns to this point.</p>
+
+<h3 id="the-sparse-construction">The sparse construction sits between them</h3>
+
+<p>The sparse construction keeps CTS's direction-and-distance form but restricts the direction to a chosen subset of coordinates. Choose a <strong>support</strong> $S \subseteq \{1, \ldots, d\}$ with $\lvert S \rvert = k$, the list of coordinates allowed to change. Set $v_i = 0$ for $i \notin S$, then draw the direction on $S$ and the radius as CTS does. The direction is still a unit vector; it simply lives in the $k$-dimensional subspace spanned by the chosen coordinates.</p>
+
+<p>The support size $k$ then selects a regime:</p>
+
+<ul>
+  <li>$k = 1$ is a coordinate-like move: the candidate changes along a single axis.</li>
+  <li>$1 < k < d$ is a sparse move.</li>
+  <li>$k = d$ is ordinary CTS in the interior (§2), that is, away from walls, where the truncation and the radius caps do not act.</li>
+</ul>
+
+<p>The definition to hold on to: $k$ is an <strong>angular support dimension</strong>, not a distance. <span class="tag">FACT</span> It is "angular" because it constrains the direction $v$ on the unit sphere, "support" because it is the number of nonzero coordinates of $v$, and a "dimension" because it counts them. It says nothing about how far the candidate moves; that is the job of $r$.</p>
+
+<h2 id="62-why-raasps-20-cannot-be-inherited">6.2 Why RAASP's "20" cannot be inherited</h2>
+
+<h3 id="coordinate-wise-step-grows-with-k">In a coordinate-wise sampler, $k$ also sets the distance</h3>
+
+<p>In a sampler that perturbs coordinates one at a time, moving more coordinates also moves the candidate farther. To see this, take a simplified model of such a sampler: each of $k$ perturbed coordinates is displaced independently by $\delta_i \sim U(-h, h)$, where $h$ is the half-width of the per-coordinate perturbation. The variance of that uniform draw is $\mathbb{E}[\delta_i^2] = h^2 / 3$, and the $k$ independent contributions add:</p>
+
+$$
+\mathbb{E}\lVert \delta \rVert_2^2 = \frac{k h^2}{3},
+$$
+
+<p>so the typical step grows like $\sqrt{k}$. With a hypothetical $h = 0.1$, the root-mean-square step is about $0.058$ at $k = 1$ and about $0.258$ at $k = 20$, a factor of $\sqrt{20} \approx 4.5$. Increasing $k$ therefore changes <em>how many coordinates move</em> and <em>how far the candidate moves</em> at once.</p>
+
+<p>That is a <span class="tag">FACT</span> about this simplified model, not a claim about every RAASP implementation. But it is one reason sparsity helps RAASP stay local, and it is why the TuRBO value 20 belongs to a sampler in which support size also sets distance. The number was tuned where the two effects were coupled.</p>
+
+<h3 id="unit-direction-step-independent-of-k">In the unit-direction construction, it does not</h3>
+
+<p>For the unit-direction construction of section 6.1, the displacement is $\delta = r v$ with $\lVert v \rVert = 1$, which gives</p>
+
+$$
+\lVert \delta \rVert_2 = r
+$$
+
+<p>exactly. So with $r \sim U(0, R)$ the mean squared step is $R^2 / 3$ for every $k$ (<span class="tag">FACT</span>, in the interior). With a hypothetical $R = 0.5$, the mean squared step is about $0.083$, a root-mean-square step of about $0.29$, whether $k$ is 1, 20, or 500. The two controls are separate: $k$ is how many coordinates cooperate, $r$ is how far the move goes.</p>
+
+<figure>
+{{FIG:fig2_step_vs_k|Line chart of root-mean-square step against support size k from 1 to 100. The independent-coordinates model rises like the square root of k, reaching about 4.5 times its k = 1 value at k = 20 and 10 times at k = 100. The unit-direction construction stays flat at 1 for every k.}}
+<figcaption>Evaluated formulas, not measured data. Each line is the root-mean-square step of one step model, divided by its value at $k = 1$ so that the arbitrary constants $h$ and $R$ drop out. Read left to right: the independent-coordinates model (section 6.2's simplified RAASP) grows like $\sqrt{k}$ and is about 4.5 times larger at $k = 20$; the unit-direction construction stays constant because $\lVert \delta \rVert = r$ no matter how many coordinates share the direction.</figcaption>
+</figure>
+
+<h3 id="hypothesis-support-size">The first hypothesis and its test</h3>
+
+<p>Once distance is held fixed, a question opens that the coupled sampler could not ask. <span class="tag">HYPOTHESIS</span> (the thread's first): some of the effect commonly attributed to sparse perturbations is due to the support size itself rather than to the shorter steps that coordinate-wise sparsity produces. "The thread" is this line of reasoning in the plan; later sections add further hypotheses to it.</p>
+
+<p>The test is to hold the radial law fixed and sweep $k$, which is exactly what the sparse construction allows. If the differences between support sizes disappear under radial control, the hypothesis is weakened.</p>
+
+<h2 id="63-what-a-random-support-does">6.3 What a random support does</h2>
+
+<h3 id="setting-active-set">An active set and a random support</h3>
+
+<p>A random support of size $k$ touches the coordinates that matter with a probability that grows with $k$. That is the familiar argument against very sparse supports, and this section first makes it exact and then shows it is only half the story.</p>
+
+<p>Take, for analysis only, an axis-aligned objective that depends on an <strong>active set</strong> $A$ of coordinates with $\lvert A \rvert = s$. "Axis-aligned" means the objective varies only along those $s$ coordinate axes and is flat along the other $d - s$. Let the support $S$ be drawn uniformly among all $k$-subsets of the $d$ coordinates. The number of active coordinates the support happens to include, the overlap $J = \lvert S \cap A \rvert$, then follows a <strong>hypergeometric</strong> distribution: the distribution of the number of marked items when $k$ items are drawn without replacement from $d$ items of which $s$ are marked,</p>
+
+$$
+P(J = j) = \frac{\binom{s}{j} \binom{d - s}{k - j}}{\binom{d}{k}}, \qquad \mathbb{E}[J] = \frac{k s}{d},
+$$
+
+<p>and for $s, k \ll d$ the chance of touching at least one active coordinate is about $1 - e^{-k s / d}$ (<span class="tag">FACT</span>). At $d = 500$, $s = 10$, and $k = 20$, the expected overlap is $\mathbb{E}[J] = 0.4$, and the chance of touching any active coordinate is $1 - e^{-0.4} \approx 0.33$ by the approximation, or $0.34$ exactly. Two candidates in three do not touch the active coordinates at all. The familiar conclusion follows: very sparse supports mostly miss.</p>
+
+<h3 id="energy-average">The average energy on the active coordinates does not depend on $k$</h3>
+
+<p>The second half of the story concerns how much of the direction lands on the active coordinates, not just whether any of it does. Write $P_A v$ for the projection of $v$ onto the active coordinates, that is, $v$ with every inactive coordinate set to zero. Because $v$ has unit length, $\lVert P_A v \rVert^2$ is the fraction of the direction's energy that points along the active subspace. Call it the <strong>active-space energy</strong>.</p>
+
+<p>Suppose the direction is <strong>isotropic on $S$</strong>: uniformly distributed over all unit vectors in the $k$-dimensional subspace, with no preferred coordinate. Then each of the $k$ supported coordinates carries $1/k$ of the energy on average, so conditional on $J = j$ the active-space energy has mean $j / k$. Averaging over the random support gives</p>
+
+$$
+\mathbb{E}\lVert P_A v \rVert^2 = \mathbb{E}\Big[ \frac{J}{k} \Big] = \frac{s}{d}
+$$
+
+<p>for every $k$ (<span class="tag">FACT</span> under isotropy). Sparse and dense pools allocate the same <em>average</em> fraction of directional energy, $s / d$, to an unknown active subspace. The intuition that "smaller $k$ puts more energy into the active coordinates" is therefore false on average.</p>
+
+<h3 id="energy-distribution">What changes is the distribution</h3>
+
+<p>What $k$ changes is how that fixed average is spread across candidates. A dense direction gives every candidate a small active component, of size about $1 / \sqrt{d}$ per coordinate. A sparse direction gives most candidates none at all, and gives the rest a component of size about $1 / \sqrt{k}$. At $d = 500$ and $k = 20$ that is $0.045$ against $0.22$, a factor 5 larger when a hit occurs.</p>
+
+<p>Sparse pools therefore trade <strong>hit probability</strong>, which rises with $k$, for <strong>concentration per hit</strong>, which rises as $k$ falls. The mean of the active-space energy is the same either way; the shape of its distribution is not.</p>
+
+<figure>
+{{FIG:fig3_random_support|Left: probability that a random support of size k touches at least one of s = 10 active coordinates among d = 500, on a log scale of k from 1 to 500; the exact hypergeometric curve and the approximation 1 minus exp(minus k s over d) almost coincide, passing 0.34 at k = 20 and reaching 1 near k = 200. Right: fraction of simulated candidates whose active-space energy exceeds a threshold u. The dense k = 500 curve stays at 1 until about u = 0.1 and drops to 0 by u = 0.2. The sparse k = 20 curve starts at 0.34 and declines slowly, still above zero past u = 0.5.}}
+<figcaption>Left: evaluated formulas; right: a Monte Carlo sample from the model stated in this section, not optimizer data. Left, for $d = 500$ and $s = 10$: the probability that a uniform random support of size $k$ touches at least one active coordinate, exact (hypergeometric) and by the approximation $1 - e^{-ks/d}$; the two curves separate only when $k$ is no longer small against $d$. Right: for 40,000 simulated isotropic directions per $k$, the fraction of candidates whose active-space energy $\lVert P_A v \rVert$ exceeds the threshold on the horizontal axis. Read each curve at $u = 0$ for the hit probability (all dense candidates hit; about a third of sparse ones do), and compare the tails: the dense pool clusters near the shared root-mean-square value $\sqrt{s/d} \approx 0.14$, while the sparse pool's hits reach much farther. Both curves have the same mean squared energy, $s/d = 0.02$.</figcaption>
+</figure>
+
+<h3 id="extreme-value">An extreme-value question</h3>
+
+<p>The optimizer does not evaluate an average candidate. It generates a pool of $M$ candidates and takes the best one, so what matters is the upper tail of the distribution, the best of $M$ draws, rather than its mean. That makes this an extreme-value question, and the pool size $M$ is part of the answer: a large pool can afford many misses if the few hits are strong.</p>
+
+<p><span class="tag">HYPOTHESIS</span>: rare strong hits beat ubiquitous weak hits when the pool is large enough and the selector can find them. The selector is whatever ranks the pool and picks the candidate to evaluate; a strong hit only helps if it is also recognized as one.</p>
+
+<p>Two parts of the plan take this up. Step 0 (§4) makes the question quantitative under the linear model. The tail diagnostic of Step 3 measures it directly: the distribution, for each $k$, of the active-space displacement $D_A = \lVert P_A (x - c) \rVert$, which is how far a candidate actually moved along the active coordinates, together with its mass at zero and its upper quantiles. Since $x - c = r v$, this is the distance $r$ scaled by the active-space component of the direction, so the diagnostic reads the right-hand panel of the figure above with the radial law included.</p>
+
+<h2 id="references">References</h2>
+<ol class="references">
+  <li id="ref-rashidi2024">Rashidi, Johnstonbaugh &amp; Gao 2024. Cited in the source plan for the exact construction of the CTS truncated direction and radius cap, and marked there as "literature context to verify." The plan gives no title or venue; neither is added here.</li>
+  <li id="ref-eriksson2019">Eriksson et al. "<a href="https://arxiv.org/abs/1910.01739">Scalable Global Optimization via Local Bayesian Optimization</a>." NeurIPS 2019. The TuRBO paper, added in this rewrite as background for the "original TuRBO implementation" the source refers to; the source itself does not cite it.</li>
+</ol>
+</main>
+</body>
+</html>

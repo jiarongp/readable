@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linear BO on the Sphere</title>
+<meta name="description" content="Group note on Doumont et al. (2025), We Still Don't Understand High-Dimensional Bayesian Optimization (arXiv:2512.00170): claims, evidence and open questions.">
+<style>
+/* Layout: one serif reading column with cool-grey ink; figures and tables may run wider in their own scroll boxes.
+   Palette: cool neutrals biased toward the teal accent; same tokens restated for dark. */
+:root{
+  --bg:#F5F7F9; --fg:#1B2129; --fg-muted:#5D6672; --rule:#D5DAE0;
+  --accent:#1F6F78; --accent-soft:#E3EFF0; --code-bg:#E9EDF1; --note-bg:#EEF2F5;
+  --font-body:"Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --font-ui:"Avenir Next","Helvetica Neue",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15191F; --fg:#E4E7EB; --fg-muted:#A3AAB4; --rule:#313841;
+    --accent:#6FC7CF; --accent-soft:#1E2E31; --code-bg:#1F252D; --note-bg:#1B2026; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15191F; --fg:#E4E7EB; --fg-muted:#A3AAB4; --rule:#313841;
+  --accent:#6FC7CF; --accent-soft:#1E2E31; --code-bg:#1F252D; --note-bg:#1B2026; color-scheme:dark;
+}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 var(--font-body);
+  padding-block:40px 80px;padding-inline:16px}
+main{max-width:70ch;margin:0 auto}
+h1,h2,h3{font-family:var(--font-ui);line-height:1.2;text-wrap:balance;font-weight:600}
+h1{font-size:2rem;margin:0 0 .3em}
+h2{font-size:1.4rem;margin-top:2.5em;padding-top:.6em;border-top:1px solid var(--rule)}
+h3{font-size:1.1rem;margin-top:1.8em}
+p{margin:.9em 0}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre{font-family:var(--font-mono);font-size:.92em}
+pre{background:var(--code-bg);padding:12px 14px;border-radius:4px;overflow-x:auto}
+code:not(pre code){background:var(--code-bg);padding:.1em .3em;border-radius:3px}
+figure{margin:1.6em 0}
+figure img,figure svg{max-width:100%;height:auto;display:block}
+figcaption{font-family:var(--font-ui);font-size:.9em;color:var(--fg-muted);margin-top:.5em;line-height:1.45}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-family:var(--font-ui);font-size:.9em;line-height:1.4}
+.table-wrap{overflow-x:auto;margin:1.2em 0}
+th,td{padding:.45em .7em;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+th{color:var(--fg-muted);font-weight:600;letter-spacing:.02em;text-transform:uppercase;font-size:.8em}
+.meta{font-family:var(--font-ui);font-size:.9em;color:var(--fg-muted);margin:0 0 1.4em}
+.subtitle{font-family:var(--font-ui);font-size:1.05rem;color:var(--fg-muted);margin:0 0 .6em;line-height:1.4}
+nav.toc{font-family:var(--font-ui);font-size:.95em;border:1px solid var(--rule);padding:12px 18px;margin:1.6em 0}
+nav.toc ul{margin:.3em 0;padding-left:1.2em}
+nav.toc li{margin:.15em 0}
+.references li{margin:.45em 0;font-size:.95em}
+.aside{background:var(--note-bg);border-left:3px solid var(--accent);padding:.6em 1em;margin:1.2em 0;font-size:.95em}
+.aside p{margin:.4em 0}
+.label{font-family:var(--font-ui);font-size:.78em;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:600}
+.math-display{overflow-x:auto;overflow-y:hidden;margin:1em 0;padding:.2em 0}
+math{font-size:1.05em}
+ul,ol{padding-left:1.4em}
+li{margin:.3em 0}
+.eqno{float:right;color:var(--fg-muted);font-family:var(--font-ui);font-size:.85em}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="linear-models-on-a-sphere">Linear models on a sphere</h1>
+  <p class="subtitle">A group note on Doumont, Fan, Maus, Gardner, Moss and Pleiss (2025), “We Still Don’t Understand High-Dimensional Bayesian Optimization”</p>
+  <p class="meta">2026-10-10 · about {{readtime}} min read · source: arXiv:2512.00170v2 (9 Apr 2026), CC BY 4.0 · status: draft for group discussion</p>
+
+  <p>The paper's claim is easy to state and hard to accept. A Gaussian process with a <em>linear</em> kernel, which is Bayesian linear regression under another name, matches the best current methods for high-dimensional Bayesian optimization (HDBO) on standard benchmarks from 60 to 6,392 dimensions. The only substantial change is a geometric one: before the kernel sees them, the inputs are mapped from the hypercube onto a sphere.</p>
+
+  <p>The same model, with its $O(ND^2)$ cost and exact posterior samples, then beats a scalable approximate-GP baseline on molecular tasks with 20,000 observations. The title is the authors' own conclusion: they show that the recipe works, show that it is <em>not</em> working because the sphere adds expressiveness, and leave the explanation open (<a href="#ref-doumont2025">Doumont et al. 2025</a>).</p>
+
+  <p>This note explains what the paper claims, how it supports each claim, and what it leaves unresolved. I assume you know Bayesian optimization and Gaussian processes, so I spend the space on the parts that are specific to this paper: the regime it targets, why a plain linear kernel fails, what the spherical mapping does, the experimental evidence, and the tension the authors cannot resolve.</p>
+
+  <p>The last two sections list the open questions and give my own reading of how much weight the evidence carries. My source is the arXiv HTML of version 2; I did not run the code. Figures in this note are my own illustrations, not the paper's plots.</p>
+
+  <nav class="toc">
+    <ul>
+      <li><a href="#setting">Budgets about the size of the dimension</a></li>
+      <li><a href="#boundary-seeking">A plain linear kernel only ever picks corners</a></li>
+      <li><a href="#spherical-mapping">The fix is to put the cube on a sphere</a>
+        <ul>
+          <li><a href="#the-kernel">The kernel, piece by piece</a></li>
+          <li><a href="#polynomial-extension">Higher-order polynomials recover the RBF kernel on the sphere</a></li>
+        </ul>
+      </li>
+      <li><a href="#advantages">What linear models give for free</a></li>
+      <li><a href="#evidence">What the experiments show</a>
+        <ul>
+          <li><a href="#setup">Benchmarks, baselines and protocol</a></li>
+          <li><a href="#main-results">Main results</a></li>
+          <li><a href="#ablations">Ablations</a></li>
+          <li><a href="#claims-table">Claims and their support at a glance</a></li>
+        </ul>
+      </li>
+      <li><a href="#puzzle">The puzzle the paper cannot resolve</a>
+        <ul>
+          <li><a href="#behaves-like-rbf">Spherical linear models explore like RBF models</a></li>
+          <li><a href="#thin-shell">Yet the mapping barely moves most points</a></li>
+          <li><a href="#expressiveness">Expressiveness does not predict BO performance</a></li>
+        </ul>
+      </li>
+      <li><a href="#open-questions">What the paper leaves open</a></li>
+      <li><a href="#reading-the-evidence">How much weight to put on the evidence</a></li>
+      <li><a href="#references">References</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="setting">Budgets about the size of the dimension</h2>
+
+  <p>The paper targets the regime where the number of evaluations $N$ is about the same as the input dimension $D$, which the authors write as $N \approx D$. A concrete instance: 1,000 evaluations of a 1,000-dimensional objective. A linear model in $D$ dimensions has $D+1$ parameters, so with $N \approx D$ you can barely fit one first-order Taylor expansion around a single point, let alone a nonparametric surrogate.</p>
+
+  <p>Classic theory says regret grows exponentially with $D$ for universal kernels (<a href="#ref-srinivas2010">Srinivas et al. 2010</a>; <a href="#ref-bull2011">Bull 2011</a>), and naïve BO can lose to random search beyond about 10 dimensions (<a href="#ref-wang2016">Wang et al. 2016</a>; <a href="#ref-santoni2024">Santoni et al. 2024</a>).</p>
+
+  <p>Most HDBO methods answer this by assuming or imposing structure. Additive decompositions split the objective into low-dimensional pieces (<a href="#ref-kandasamy2015">Kandasamy et al. 2015</a>); subspace and sparsity methods search a low-dimensional projection or select a few relevant coordinates (<a href="#ref-papenmeier2022">Papenmeier et al. 2022</a>; <a href="#ref-eriksson2021">Eriksson and Jankowiak 2021</a>); trust-region methods make the search local (<a href="#ref-eriksson2019">Eriksson et al. 2019</a>); a few methods warp the geometry of the inputs (<a href="#ref-oh2018">Oh et al. 2018</a>). The paper's summary of this literature is that all of these reduce the complexity of either the objective or the search space, at the price of complicated algorithms and many hyperparameters.</p>
+
+  <p>A recent line of work takes a different route and simply makes the prior smoother as $D$ grows. <a href="#ref-hvarfner2024">Hvarfner et al. (2024)</a> and <a href="#ref-xu2025">Xu et al. (2025)</a> scale the RBF lengthscales in proportion to $\sqrt{D}$, so that the expected norm of the rescaled inputs stays independent of dimension. With that one change, “Vanilla BO” (expected improvement plus a squared-exponential GP) becomes competitive up to $D > 6000$, including in the $N \approx D$ regime where structure-based methods were designed to win.</p>
+
+  <p>Doumont et al. push this smoothness idea as far as it goes. You cannot just scale lengthscales faster: as the paper notes, that drives $\|\mathbf{x}/\ell - \mathbf{x}'/\ell\| \to 0$ as $D \to \infty$ and collapses the prior onto constant functions.</p>
+
+  <p>The smoothest non-constant alternative is a prior over linear functions, that is, a GP with a linear kernel. The hypothesis is that if $N \approx D$ budgets cannot support more than a locally linear picture anyway, a model that can represent only linear functions loses nothing. The linear model also brings practical benefits for the opposite regime, $N \gg D$, which the paper exploits later.</p>
+
+  <h2 id="boundary-seeking">A plain linear kernel only ever picks corners</h2>
+
+  <p>The standard linear kernel on inputs $\mathbf{x} \in [-1,1]^D$ is</p>
+
+  $$k_{\mathrm{linear}}(\mathbf{x},\mathbf{x}') := b_0 + b_1\,\mathbf{x}^{\top}\mathbf{x}'$$
+
+  <p>with hyperparameters $b_0, b_1 > 0$. This is a $(D+1)$-dimensional feature map, $[\sqrt{b_0}, \sqrt{b_1}x_1, \ldots, \sqrt{b_1}x_D]$, so the GP is exactly Bayesian linear regression with an intercept. Standard references advise against it for BO because black-box objectives have unknown complexity (<a href="#ref-garnett2023">Garnett 2023</a>). The paper's own experiments agree that, used naïvely, it “performs extremely poorly on most high-dimensional BO tasks.”</p>
+
+  <p>The paper's first contribution is to say precisely why. Its Theorem 1 states: for any acquisition function that increases in the posterior mean and posterior standard deviation (expected improvement and UCB both qualify), a Bayesian linear model on $[-1,1]^D$ always maximizes the acquisition on the boundary. Formally, the chosen point $\mathbf{x}_{t+1}$ has at least one coordinate equal to $-1$ or $+1$, so $\|\mathbf{x}_{t+1}\|_\infty = 1$ at every step $t$.</p>
+
+  <p>The mechanism is a one-line calculation. Write any candidate as a direction times a magnitude, $\mathbf{x} = c\,\mathbf{z}$ with $c = \|\mathbf{x}\| \ge 0$. For a linear model with posterior mean coefficients $\hat{\boldsymbol{\beta}}$, posterior covariance $\mathbf{S}$, and noise variance $\sigma_\varepsilon^2$,</p>
+
+  $$\mu(\mathbf{x}) = c\cdot\mathbf{z}^{\top}\hat{\boldsymbol{\beta}}, \qquad \sigma(\mathbf{x}) = \sqrt{\sigma_\varepsilon^2 + c^2\cdot\mathbf{z}^{\top}\mathbf{S}\mathbf{z}}.$$
+
+  <p>Pick the sign of $\mathbf{z}$ so that $\mathbf{z}^{\top}\hat{\boldsymbol{\beta}} \ge 0$. Then both the mean and the standard deviation grow with $c$, so the acquisition grows with $c$ too, and any interior point can be improved by walking outward along its own direction until it hits a face of the cube. Appendix A.1 extends the argument to a model with an intercept, where the same thing happens along rays from a shifted center, apart from a non-generic degenerate case.</p>
+
+  <figure>
+    <img src="{{fig:fig1_boundary.png}}" alt="Two panels. Left: for a one-dimensional linear model, the posterior mean is a straight line, the uncertainty band widens away from zero, and the UCB curve rises to its maximum at the boundary x = 1. Right: after the spherical map, the acquisition function from the paper's counterexample peaks at x = 0.5 inside the interval." width="1600" height="800">
+    <figcaption>Illustration, not measured data. (a) A hypothetical one-dimensional Bayesian linear model with $\mu(x) = 0.6x$ and $\sigma(x) = \sqrt{0.05 + 0.3x^2}$; the blue line is the posterior mean, the band is one standard deviation, the orange curve is UCB with $\kappa = 2$. Read it left to right: the acquisition is lowest near the center and reaches its maximum exactly at the boundary. (b) The paper's own counterexample (Appendix A.2) after the spherical mapping, plotted exactly: the acquisition peaks at an interior point. Generated by <code>make_figures.py</code>.</figcaption>
+  </figure>
+
+  <p>To put numbers on panel (a): at the center, UCB is $0 + 2\sqrt{0.05} \approx 0.45$; at $x = 1$ it is $0.6 + 2\sqrt{0.35} \approx 1.78$. In high dimensions this is worse than it sounds.</p>
+
+  <p>The paper measures, for each acquired point, the fraction of its coordinates that sit at $\pm 1$. For the standard linear kernel on MOPTA08 and SVM that fraction is 100%: the model does not merely search the boundary, it searches the $2^D$ corners, a finite set of measure zero inside the search space. Because corners are maximally far apart, the acquisitions also jump across the whole space, which the paper quantifies with a path-length metric I come back to in the <a href="#behaves-like-rbf">analysis section</a>.</p>
+
+  <h2 id="spherical-mapping">The fix is to put the cube on a sphere</h2>
+
+  <p>On a sphere, every point has the same norm, so there is no “outward” direction along which the mean and variance of a linear model can keep growing. That removes the premise of Theorem 1. The paper therefore maps each input bijectively from the cube in $\mathbb{R}^D$ onto the unit sphere $\mathbb{S}^D \subset \mathbb{R}^{D+1}$ and applies the linear kernel there.</p>
+
+  <p>Appendix A.2 gives a concrete counterexample to the boundary theorem after the mapping: in one dimension, with UCB exploration factor $0$ and posterior coefficients $\hat{\boldsymbol{\beta}} = (1/2, -1)$, the acquisition becomes</p>
+
+  $$\alpha(x) = \frac{1}{2}\cdot\frac{2x}{x^2+1} - \frac{x^2-1}{x^2+1}, \qquad \alpha(-1) = -\tfrac{1}{2},\quad \alpha\!\left(\tfrac{1}{2}\right) = 1,\quad \alpha(1) = \tfrac{1}{2},$$
+
+  <p>so the interior point $x = 1/2$ beats both endpoints. This is panel (b) of the figure above. The example shows that the theorem no longer applies; it is not a proof that the mapped model never prefers the boundary, and the paper does not claim one.</p>
+
+  <h3 id="the-kernel">The kernel, piece by piece</h3>
+
+  <p>The proposed kernel keeps the linear form but applies it to projected, rescaled inputs:</p>
+
+  $$k_{\mathrm{linear}}(\mathbf{x},\mathbf{x}') := b_0 + b_1\,P(\mathbf{z})^{\top}P(\mathbf{z}'), \qquad \mathbf{z} := \frac{1}{a}\begin{bmatrix}\tfrac{x_1}{\ell_1} & \cdots & \tfrac{x_D}{\ell_D}\end{bmatrix}.$$
+
+  <p>Three ingredients are new relative to the standard kernel: the projection $P$, the split of the lengthscale into a global scalar $a$ and a per-dimension vector $\boldsymbol{\ell}$, and a constraint on $b_0 + b_1$. The paper's ablations (Appendix D.3) rank the projection as by far the most important, so I take it first.</p>
+
+  <p><strong>The projection.</strong> $P: \mathbb{R}^D \to \mathbb{S}^D$ is the inverse stereographic projection,</p>
+
+  $$P(\mathbf{z}) := \frac{1}{\|\mathbf{z}\|^2 + 1}\begin{bmatrix}2z_1 & \cdots & 2z_D & \|\mathbf{z}\|^2 - 1\end{bmatrix}.$$
+
+  <p>It rescales the $D$ coordinates by a function of the norm and appends one extra coordinate, so the linear model has $D+1$ features instead of $D$. The map is smooth, bijective on $\mathbb{R}^D$, and conformal (angle-preserving). The property the paper leans on most is that it is the identity on unit-norm inputs: if $\|\mathbf{z}\| = 1$ then $P(\mathbf{z}) = [\mathbf{z}, 0]$.</p>
+
+  <p>A worked instance in one dimension: $z = 0.5$ gives $P(z) = (2 \cdot 0.5, 0.25 - 1)/1.25 = (0.8, -0.6)$, which has unit norm; $z = 1$ gives $(1, 0)$; $z = 2$ gives $(0.8, 0.6)$; $z = 0$ goes to the south pole $(0, -1)$ and $|z| \to \infty$ approaches the north pole.</p>
+
+  <figure>
+    <img src="{{fig:fig2_projection.png}}" alt="A unit circle with the real line drawn through its center. Rays from the north pole pass through points on the line and land on the circle. The points z = plus or minus 1 lie where the line crosses the circle and stay fixed; points with absolute value below 1 land on the lower half, points above 1 on the upper half, and z = 0 lands on the south pole." width="1600" height="928">
+    <figcaption>Illustration of the inverse stereographic projection for $D = 1$. Each square on the horizontal line is an input $z$; the ray from the north pole through it meets the circle at its image $P(z)$ (the dot). Orange marks $z = \pm 1$, which stay in place; blue marks the other inputs. In high dimensions almost all rescaled inputs have norm near 1, so they land close to the equator where the map changes them very little. Generated by <code>make_figures.py</code>.</figcaption>
+  </figure>
+
+  <p><strong>Decoupled lengthscales.</strong> Vanilla BO imposes the $\sqrt{D}$ lengthscale scaling through a hyperprior; <a href="#ref-papenmeier2025b">Papenmeier et al. (2025b)</a> do it through the initialization. The paper instead factors the lengthscale into a global scalar $a$, initialized at $O(\sqrt{D})$, times an unconstrained vector $\boldsymbol{\ell}$ that captures per-dimension sensitivity with a log-normal prior $\ell_i \sim \mathcal{LN}(\sqrt{2}, \sqrt{3})$.</p>
+
+  <p>The $\sqrt{D}$ in $a$ makes each entry of $\mathbf{z}$ of order $1/\sqrt{D}$, so $\|\mathbf{z}\|$ is of order 1 before projection. Appendix D.1 reports that the choice of hyperprior on $\boldsymbol{\ell}$ barely matters for this model, whereas it matters a lot for a standard RBF kernel.</p>
+
+  <p><strong>No implicit outputscale.</strong> Because $P$ maps onto the unit sphere, $P(\mathbf{z})^{\top}P(\mathbf{z}') \le 1$ with equality only when $\mathbf{x} = \mathbf{x}'$, so the kernel is bounded above by $b_0 + b_1$ the way an RBF kernel is bounded by 1. Following Hvarfner et al., the paper fixes $b_0 + b_1 = 1$ by learning unconstrained parameters and passing them through a softmax, which removes any hidden outputscale.</p>
+
+  <p><strong>Centering.</strong> One more detail from the ablations: the search space is centered at $[-1,1]^D$ rather than $[0,1]^D$, and the uncentered version performs noticeably worse. The paper's hypothesis is that $P$ depends on the norm of the input, so without centering the two faces of the cube get different treatment.</p>
+
+  <h3 id="polynomial-extension">Higher-order polynomials recover the RBF kernel on the sphere</h3>
+
+  <p>The linear kernel is the $m = 1$ case of a polynomial family on the sphere,</p>
+
+  $$k_{\mathrm{poly}}(\mathbf{x},\mathbf{x}') := \sum_{i=0}^{m} b_i\left[P(\mathbf{z})^{\top}P(\mathbf{z}')\right]^i,$$
+
+  <p>with the $b_i$ again constrained to the simplex. This family is not an arbitrary generalization. <a href="#ref-schoenberg1942">Schoenberg (1942)</a> showed that every dot-product kernel on the unit sphere has this form for some $m$, and Appendix A.3 shows that any isotropic kernel (Matérn, rational quadratic, RBF) restricted to the sphere can be approximated by it.</p>
+
+  <p>For the RBF kernel the coefficients are explicit: on the sphere, $k_{\mathrm{RBF}}(P(\mathbf{z}), P(\mathbf{z}')) = \sum_{i=0}^{\infty} \frac{1}{i!\,e}\,[P(\mathbf{z})^{\top}P(\mathbf{z}')]^i$. So raising $m$ interpolates between the linear model and an RBF GP on the sphere, which makes the ablation over $m$ a direct test of whether extra capacity helps. It does not, as the <a href="#ablations">ablations</a> show.</p>
+
+  <h2 id="advantages">What linear models give for free</h2>
+
+  <p>Two properties follow from the $O(D)$ feature map and hold for no RBF or Matérn kernel. First, exact posterior inference over the $D+1$ weights costs $O(ND^2)$ time instead of the $O(N^3)$ of a non-degenerate GP (<a href="#ref-williams2006">Williams and Rasmussen 2006</a>). This is what lets the paper run exact inference with $N = 20{,}000$ observations, where standard kernels need sparse or variational approximations such as stochastic variational GPs (<a href="#ref-hensman2013">Hensman et al. 2013</a>).</p>
+
+  <p>Second, Thompson sampling is exact. A posterior function is $f(\mathbf{x}) = \theta_0 + \boldsymbol{\theta}^{\top}P(\mathbf{z})$ with finite-dimensional Gaussian $\theta_0$ and $\boldsymbol{\theta}$, so sampling the weights samples an entire function in closed form. With standard kernels, posterior samples need discretization or pathwise approximations (<a href="#ref-wilson2020">Wilson et al. 2020</a>). Higher-order polynomials lose both benefits because their feature map is $O(D^m)$-dimensional, which is one reason the paper stops at $m = 1$.</p>
+
+  <h2 id="evidence">What the experiments show</h2>
+
+  <h3 id="setup">Benchmarks, baselines and protocol</h3>
+
+  <p>The $N \approx D$ experiments use six standard HDBO benchmarks under a budget of $N = 1000$ evaluations. The $N \gg D$ experiments optimize molecular objectives from GuacaMol (<a href="#ref-brown2019">Brown et al. 2019</a>) in the 256-dimensional latent space of a pre-trained SELFIES variational autoencoder (<a href="#ref-maus2022">Maus et al. 2022</a>) with a budget of 20,000.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Benchmark</th><th>D</th><th>Budget N</th><th>Regime</th></tr></thead>
+    <tbody>
+      <tr><td>Rover</td><td>60</td><td>1,000</td><td>$N \approx D$</td></tr>
+      <tr><td>MOPTA08</td><td>124</td><td>1,000</td><td>$N \approx D$</td></tr>
+      <tr><td>Lasso-DNA</td><td>180</td><td>1,000</td><td>$N \approx D$</td></tr>
+      <tr><td>SVM</td><td>388</td><td>1,000</td><td>$N \approx D$</td></tr>
+      <tr><td>Ant</td><td>888</td><td>1,000</td><td>$N \approx D$</td></tr>
+      <tr><td>Humanoid</td><td>6,392</td><td>1,000</td><td>$N \approx D$</td></tr>
+      <tr><td>GuacaMol tasks (VAE latent space)</td><td>256</td><td>20,000</td><td>$N \gg D$</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Baselines for $N \approx D$ are BOCK, TuRBO, SAASBO, BAxUS, Vanilla BO, the standard linear kernel of the previous section, and Sobol quasi-random search. For $N \gg D$ the comparison is against EULBO (<a href="#ref-maus2024">Maus et al. 2024</a>), a scalable method that relies on variational approximations.</p>
+
+  <p>The protocol follows Hvarfner et al.: LogEI as the acquisition function (<a href="#ref-ament2023">Ament et al. 2023</a>), 30 quasi-random initial points (100 for the molecular tasks), at least 10 seeds, and plots of the mean with standard error across seeds. Appendix C notes two practical details: SAASBO was run for only 500 iterations because of its cost, and the linear kernel and Vanilla BO had similar wall-clock times (within about 10%).</p>
+
+  <h3 id="main-results">Main results</h3>
+
+  <p>On the $N \approx D$ benchmarks the paper reports that the spherical linear kernel “matches the current state-of-the-art on all” six tasks, and that its trajectories are statistically indistinguishable from Vanilla BO on Lasso-DNA and Humanoid.</p>
+
+  <p>The standard linear kernel fails on many tasks but does reasonably on the lower-dimensional ones; the gap between the two linear kernels is largest on SVM and Ant. Since the main figure is not in my text source, I cannot quote per-task numbers; the paper's wording is “match or exceed.”</p>
+
+  <p>On the $N \gg D$ molecular tasks the paper reports significant gains over EULBO. The authors' interpretation is that an exact linear model, needing no approximation, is better suited to large $N$ than an approximate nonparametric one, despite its lower capacity.</p>
+
+  <p>A separate experiment in Appendix E.1 runs nine GuacaMol tasks at the smaller budget $N = 1000$ against Vanilla BO, and the linear kernel “significantly outperforms” it on all nine. The paper flags this as possibly specific to latent-space BO and leaves the analysis to future work.</p>
+
+  <h3 id="ablations">Ablations</h3>
+
+  <p>The ablations are where the paper earns its title, because they rule out the easy explanations.</p>
+
+  <ul>
+    <li><strong>Polynomial order.</strong> Across the $N \approx D$ benchmarks, the order $m$ has almost no effect; $m = 1$ matches $m = 5$ on nearly every task, with MOPTA08 as a minor exception where higher orders do slightly better (Figures 3 and 14). Extra capacity, up to and including an approximation of RBF on the sphere, does not buy optimization performance here.</li>
+    <li><strong>Choice of mapping.</strong> With no projection (keeping the other two modifications), performance drops; so a spherical map is necessary. But the choice among spherical maps also matters a lot: plain normalization $\mathbf{z}/\|\mathbf{z}\|$ reaches state of the art on Ant yet is worse than no projection at all on MOPTA08. The inverse stereographic projection is the only candidate that leaves unit-norm inputs unchanged, and it is the one that wins consistently (Figures 4 and 15). The paper hypothesizes that the identity-on-unit-norm property is the reason, without proving it.</li>
+    <li><strong>The same map on an RBF kernel.</strong> Projecting the inputs before an RBF kernel changes Vanilla BO's performance very little (Appendix D.2). The projection matters for the linear model and not for the nonparametric one.</li>
+    <li><strong>Other components.</strong> Removing the projection or the centering hurts noticeably; removing ARD or the global lengthscale $a$ costs only a little (Appendix D.3). The decoupled lengthscale mainly makes the model insensitive to the hyperprior.</li>
+    <li><strong>Acquisition function.</strong> Replacing EI with UCB changes little. Replacing it with Thompson sampling causes a noticeable drop for both the linear model and Vanilla BO, but the linear model still matches or slightly exceeds Vanilla BO under TS (Appendix D.4).</li>
+    <li><strong>Problem structure.</strong> On Hartmann-6 and Levy-4 embedded in 25 to 1,000 ambient dimensions, the gap between Vanilla BO and the linear model shrinks as the ambient dimension grows. On GP samples drawn from $\alpha\,k_{\mathrm{linear}} + (1-\alpha)\,k_{\mathrm{RBF}}$, the gap shrinks from about 30% to 5% as $\alpha$ goes from 0 to 1, and the linear model still makes substantial progress at $\alpha = 0$, where the objective is entirely nonlinear (Appendix D.5).</li>
+  </ul>
+
+  <h3 id="claims-table">Claims and their support at a glance</h3>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Claim</th><th>Support in the paper</th><th>Scope or caveat</th></tr></thead>
+    <tbody>
+      <tr><td>Plain linear kernels acquire only boundary points</td><td>Theorem 1 with proof (App. A.1); boundary-fraction plots show 100% corner points on MOPTA08 and SVM</td><td>Requires an acquisition increasing in mean and std; the intercept case has a non-generic exception</td></tr>
+      <tr><td>Spherical mapping removes this pathology</td><td>Counterexample in App. A.2; boundary fraction and path-length metrics resemble RBF models (Sec. 5.1)</td><td>Counterexample shows the theorem no longer applies; it is not a guarantee of interior acquisitions</td></tr>
+      <tr><td>Spherical linear kernel matches state of the art for $N \approx D$</td><td>Six benchmarks, 60 to 6,392 D, N = 1000, at least 10 seeds (Fig. 2 left)</td><td>“Match or exceed”; indistinguishable from Vanilla BO on two named tasks; SAASBO ran 500 iterations</td></tr>
+      <tr><td>It gives new state of the art for $N \gg D$</td><td>GuacaMol tasks in a 256-D VAE latent space, N = 20,000, versus EULBO (Fig. 2 right)</td><td>One task family and one baseline</td></tr>
+      <tr><td>Strong on latent-space tasks even at N = 1000</td><td>Nine GuacaMol tasks versus Vanilla BO (App. E.1)</td><td>Flagged by the authors as unexplained and left to future work</td></tr>
+      <tr><td>Extra capacity does not help</td><td>Polynomial order ablation (Figs. 3, 14); regression RMSE experiments (Fig. 6)</td><td>Minor exception on MOPTA08</td></tr>
+      <tr><td>The mapping is geometrically minor for most points</td><td>Thin-shell derivation (App. A.5); identical regression error for spherical and standard linear models on Sobol data</td><td>Holds under the $\sqrt{D}$ lengthscale scaling and uniform inputs</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2 id="puzzle">The puzzle the paper cannot resolve</h2>
+
+  <p>Section 5 of the paper sets up two observations that pull in opposite directions. After the spherical mapping, the linear model behaves during BO like a nonparametric GP. Yet the mapping is a nearly trivial transformation for almost every point in a high-dimensional cube, and it adds no measurable expressiveness. The authors say plainly that their analysis “cannot resolve this puzzle,” and that reconciling the two observations is what the title is about.</p>
+
+  <h3 id="behaves-like-rbf">Spherical linear models explore like RBF models</h3>
+
+  <p>Two diagnostics support the first observation. The <strong>boundary fraction</strong> is, for each acquired point, the share of its coordinates equal to $\pm 1$: 0% means an interior point, 100% a corner. The standard linear kernel sits at 100% on MOPTA08 and SVM.</p>
+
+  <p>On those two tasks, RBF kernels acquire points with at most about 50% of coordinates on the boundary. The spherical linear kernel looks like RBF, and on SVM it acquires purely interior points. Across six benchmarks (Appendix E.4) both the spherical linear model and Vanilla BO vary widely, from near 0% on SVM and Ant to above 50% on the other four.</p>
+
+  <p>The second diagnostic is the <strong>Observation Traveling Salesman Distance</strong> (OTSD) of <a href="#ref-papenmeier2025a">Papenmeier et al. (2025a)</a>: the length of the shortest path through all acquired points, where a lower value indicates more local search. The standard linear kernel has large OTSD, often above random search, because corners are far apart, and the value keeps growing with $D$.</p>
+
+  <p>The spherical linear kernel and RBF kernels both have similarly low OTSD. The paper calls this “preliminary evidence” that the spherical model explores like an RBF model and says a complete characterization is future work.</p>
+
+  <h3 id="thin-shell">Yet the mapping barely moves most points</h3>
+
+  <p>The second observation rests on a concentration-of-measure argument. Suppose $\mathbf{x}$ is uniform on $[-1,1]^D$ and the lengthscales follow the $\sqrt{D}$ scaling, so that $\mathbf{z} = \mathbf{x}\sqrt{3/D}$. Each coordinate has $\mathbb{E}(Z_i^2) = 1/D$ and $\operatorname{var}(Z_i^2) = 4/(5D^2)$, so</p>
+
+  $$\mathbb{E}\left(\|\mathbf{Z}\|^2\right) = 1, \qquad \operatorname{var}\left(\|\mathbf{Z}\|^2\right) = \frac{4}{5D},$$
+
+  <p>and $\|\mathbf{Z}\| \to 1$ as $D \to \infty$. This is the thin-shell phenomenon (<a href="#ref-vershynin2025">Vershynin 2025</a>): in high dimensions, almost all of the cube's volume sits in a thin shell at a fixed radius.</p>
+
+  <p>The projection is the identity exactly on that shell. So for most points the spherical linear model is the standard linear model with one extra feature, which for these benchmarks is less than a 1% increase in $D$. The figure below shows the effect numerically.</p>
+
+  <figure>
+    <img src="{{fig:fig3_thin_shell.png}}" alt="Density curves of the norm of the rescaled input for D equal to 2, 10, 100 and 1000. The curve for D = 2 is broad; the curves narrow as D grows and the D = 1000 curve is a sharp spike at norm 1." width="1600" height="800">
+    <figcaption>Monte Carlo illustration of the thin-shell effect (20,000 draws per curve): the density of $\|\mathbf{z}\|$ for $\mathbf{x}$ uniform on $[-1,1]^D$ with $\mathbf{z} = \mathbf{x}\sqrt{3/D}$. Darker blue is larger $D$. Compare the widths: at $D = 1000$ almost every point has norm within a few percent of 1, the radius at which the inverse stereographic projection leaves points unchanged. Generated by <code>make_figures.py</code>.</figcaption>
+  </figure>
+
+  <div class="aside">
+    <p><span class="label">Possible source inconsistency</span></p>
+    <p>Section 5.2 of the paper says the lengthscales are “set to $\sqrt{3/D}$,” while Appendix A.5 defines $\mathbf{z} = \mathbf{x}\sqrt{3/D}$, which corresponds to a lengthscale of $\sqrt{D/3}$. The appendix version is the one consistent with scaling lengthscales up by $\sqrt{D}$ and with $\mathbb{E}\|\mathbf{Z}\|^2 = 1$, so I follow it here. The discrepancy looks like a typo in the main text and does not affect the argument.</p>
+  </div>
+
+  <p>The paper checks the “no extra expressiveness” reading directly. Fitting each model to 400 Sobol points and predicting 100 held-out Sobol points, the spherical and standard linear models reach nearly identical RMSE on most benchmarks, while RBF is generally more accurate. That rules out the hypothesis that the projection works by injecting useful nonlinear features.</p>
+
+  <h3 id="expressiveness">Expressiveness does not predict BO performance</h3>
+
+  <p>If the two linear models predict random test points equally well, why do they optimize so differently? The paper's answer is that predictive accuracy on random points is the wrong quantity.</p>
+
+  <p>It repeats the regression test on adaptively chosen data: fit to 400 points from a BO trajectory generated by the spherical linear model, then predict the objective at the next 100 acquired points. On that task all three models, spherical linear, standard linear, and RBF, reach similar accuracy, even though they differ enormously as BO surrogates.</p>
+
+  <p>The authors offer one hypothesis. Acquisition functions like EI tend to pick points locally (<a href="#ref-garnett2023">Garnett 2023</a>), and near the current data a first-order Taylor approximation may be adequate even for a globally complex objective. That would explain why a linear model predicts the next acquisition well.</p>
+
+  <p>It does not explain why the spherical and standard linear models, which predict equally well, acquire such different points, and the paper says so: which properties actually matter for HDBO success, beyond expressiveness and generalization, “remains an important open question.”</p>
+
+  <h2 id="open-questions">What the paper leaves open</h2>
+
+  <p>The authors are explicit about most of these; I have grouped them and added where in the paper each one surfaces.</p>
+
+  <ul>
+    <li><strong>Why it works.</strong> The central question. The paper shows that neither expressiveness nor regression accuracy explains the gap between the spherical and standard linear models, and offers only the local-acquisition hypothesis (Section 5.3).</li>
+    <li><strong>How the spherical model explores.</strong> Boundary fraction and OTSD are called preliminary; a full characterization of the exploration pattern is future work (Section 5.1).</li>
+    <li><strong>Why this projection.</strong> The inverse stereographic projection wins consistently and is the only candidate that fixes unit-norm inputs, but the link between that property and performance is a hypothesis (Section 4.3).</li>
+    <li><strong>Why centering matters.</strong> The explanation via unequal norms of the two faces is stated as a hypothesis (Appendix D.3).</li>
+    <li><strong>Why the projection matters for linear kernels but not RBF.</strong> Observed in Appendix D.2 and not explained.</li>
+    <li><strong>The latent-space advantage.</strong> The linear model beats Vanilla BO on all nine GuacaMol tasks at $N = 1000$; the authors say they leave a thorough analysis to further work (Appendix E.1).</li>
+    <li><strong>Theory.</strong> The paper gives no regret analysis for the spherical linear model, and its conclusion asks for “radically new theories” rather than offering one.</li>
+    <li><strong>Which problem properties matter.</strong> The synthetic experiments show the gap to Vanilla BO shrinking with sparsity and linearity, but the paper only concludes that the linear model “might be more suited” to higher-dimensional or sparser objectives (Appendix D.5).</li>
+  </ul>
+
+  <h2 id="reading-the-evidence">How much weight to put on the evidence</h2>
+
+  <p>This section is my reading rather than the paper's. The $N \approx D$ evidence is reasonably strong by the standards of this literature: six widely used benchmarks spanning two orders of magnitude in $D$, the same protocol as the Vanilla BO paper, at least 10 seeds with standard errors, a released implementation, and ablations that isolate each design choice.</p>
+
+  <p>The polynomial-order and regression ablations in particular make the “not expressiveness” conclusion credible rather than rhetorical.</p>
+
+  <p>Three limits are visible in the text. First, the $N \gg D$ claim rests on one task family, GuacaMol objectives in one VAE latent space, and one baseline, EULBO; “new state of the art on large-$N$ tasks” is a broader phrase than the experiment.</p>
+
+  <p>Second, the headline $N \approx D$ result is “match,” and the only explicit statistical statement is that two of six tasks are indistinguishable from Vanilla BO. The practical case for adoption in that regime is therefore simplicity and cost, not optimization gains. Third, SAASBO was run for half the budget of the other baselines, which the paper discloses but which weakens that comparison. I had the paper's text but not its figure panels, so where a claim depends on reading a curve I have reported the authors' wording.</p>
+
+  <p>The paper's own recommendation is narrower than its title suggests: adopt the spherical linear kernel for large-$N$ tasks and latent-space tasks, where it is both cheaper and better in their experiments.</p>
+
+  <p>For us, the more interesting content is the negative result. If a $(D+1)$-feature model that is almost the identity on most inputs matches nonparametric GPs with carefully tuned priors, then the standard story that HDBO success comes from matching model capacity to objective complexity is missing something.</p>
+
+  <p>Code is at <a href="https://github.com/colmont/linear-bo">github.com/colmont/linear-bo</a>; the method is a kernel plus an input transform, so it should drop into a BoTorch pipeline next to Vanilla BO, which is how the paper ran it (Appendix C).</p>
+
+  <h2 id="references">References</h2>
+
+  <p class="meta">Entries follow the paper's bibliography. arXiv identifiers and links for sources other than [1] were added from memory for convenience and have not been verified against the originals; check them before citing.</p>
+
+  <ol class="references">
+    <li id="ref-doumont2025">Doumont, C., Fan, D., Maus, N., Gardner, J. R., Moss, H., and Pleiss, G. “<a href="https://arxiv.org/abs/2512.00170">We Still Don't Understand High-Dimensional Bayesian Optimization</a>.” arXiv:2512.00170, v2, 9 April 2026. Code: <a href="https://github.com/colmont/linear-bo">github.com/colmont/linear-bo</a>.</li>
+    <li id="ref-hvarfner2024">Hvarfner, C., Hellsten, E. O., and Nardi, L. “<a href="https://arxiv.org/abs/2402.02229">Vanilla Bayesian Optimization Performs Great in High Dimensions</a>.” ICML 2024.</li>
+    <li id="ref-xu2025">Xu, Z., Wang, H., Phillips, J. M., and Zhe, S. “<a href="https://arxiv.org/abs/2402.02746">Standard Gaussian Process is All You Need for High-Dimensional Bayesian Optimization</a>.” ICLR 2025.</li>
+    <li id="ref-papenmeier2025a">Papenmeier, L., Cheng, N., Becker, S., and Nardi, L. “Exploring Exploration in Bayesian Optimization.” UAI 2025. (No link verified.)</li>
+    <li id="ref-papenmeier2025b">Papenmeier, L., Poloczek, M., and Nardi, L. “Understanding High-Dimensional Bayesian Optimization.” ICML 2025. (No link verified.)</li>
+    <li id="ref-srinivas2010">Srinivas, N., Krause, A., Kakade, S. M., and Seeger, M. “<a href="https://arxiv.org/abs/0912.3995">Gaussian Process Optimization in the Bandit Setting: No Regret and Experimental Design</a>.” ICML 2010.</li>
+    <li id="ref-bull2011">Bull, A. D. “<a href="https://arxiv.org/abs/1101.3501">Convergence Rates of Efficient Global Optimization Algorithms</a>.” JMLR 2011.</li>
+    <li id="ref-wang2016">Wang, Z., Hutter, F., Zoghi, M., Matheson, D., and De Freitas, N. “<a href="https://arxiv.org/abs/1301.1942">Bayesian Optimization in a Billion Dimensions via Random Embeddings</a>.” JAIR 2016.</li>
+    <li id="ref-santoni2024">Santoni, M. L., Raponi, E., De Leone, R., and Doerr, C. “Comparison of High-Dimensional Bayesian Optimization Algorithms on BBOB.” ACM Transactions on Evolutionary Learning 2024. (No link verified.)</li>
+    <li id="ref-kandasamy2015">Kandasamy, K., Schneider, J., and Póczos, B. “<a href="https://arxiv.org/abs/1503.01673">High Dimensional Bayesian Optimisation and Bandits via Additive Models</a>.” ICML 2015.</li>
+    <li id="ref-eriksson2019">Eriksson, D., Pearce, M., Gardner, J., Turner, R. D., and Poloczek, M. “<a href="https://arxiv.org/abs/1910.01739">Scalable Global Optimization via Local Bayesian Optimization</a>.” NeurIPS 2019. (TuRBO.)</li>
+    <li id="ref-eriksson2021">Eriksson, D. and Jankowiak, M. “<a href="https://arxiv.org/abs/2103.00349">High-Dimensional Bayesian Optimization with Sparse Axis-Aligned Subspaces</a>.” UAI 2021. (SAASBO.)</li>
+    <li id="ref-papenmeier2022">Papenmeier, L., Nardi, L., and Poloczek, M. “<a href="https://arxiv.org/abs/2304.11468">Increasing the Scope as You Learn: Adaptive Bayesian Optimization in Nested Subspaces</a>.” NeurIPS 2022. (BAxUS.)</li>
+    <li id="ref-oh2018">Oh, C., Gavves, E., and Welling, M. “<a href="https://arxiv.org/abs/1806.01619">BOCK: Bayesian Optimization with Cylindrical Kernels</a>.” ICML 2018.</li>
+    <li id="ref-maus2024">Maus, N., Kim, K., Pleiss, G., Eriksson, D., Cunningham, J. P., and Gardner, J. R. “<a href="https://arxiv.org/abs/2406.04308">Approximation-Aware Bayesian Optimization</a>.” NeurIPS 2024. (EULBO.)</li>
+    <li id="ref-ament2023">Ament, S., Daulton, S., Eriksson, D., Balandat, M., and Bakshy, E. “<a href="https://arxiv.org/abs/2310.20708">Unexpected Improvements to Expected Improvement for Bayesian Optimization</a>.” NeurIPS 2023. (LogEI.)</li>
+    <li id="ref-brown2019">Brown, N., Fiscato, M., Segler, M. H., and Vaucher, A. C. “<a href="https://arxiv.org/abs/1811.09621">GuacaMol: Benchmarking Models for de novo Molecular Design</a>.” Journal of Chemical Information and Modeling 2019.</li>
+    <li id="ref-maus2022">Maus, N., Jones, H., Moore, J., Kusner, M. J., Bradshaw, J., and Gardner, J. “<a href="https://arxiv.org/abs/2201.11872">Local Latent Space Bayesian Optimization over Structured Inputs</a>.” NeurIPS 2022.</li>
+    <li id="ref-hensman2013">Hensman, J., Fusi, N., and Lawrence, N. D. “<a href="https://arxiv.org/abs/1309.6835">Gaussian Processes for Big Data</a>.” UAI 2013.</li>
+    <li id="ref-wilson2020">Wilson, J., Borovitskiy, V., Terenin, A., Mostowsky, P., and Deisenroth, M. “<a href="https://arxiv.org/abs/2002.09309">Efficiently Sampling Functions from Gaussian Process Posteriors</a>.” ICML 2020.</li>
+    <li id="ref-schoenberg1942">Schoenberg, I. J. “Positive Definite Functions on Spheres.” Duke Mathematical Journal 1942.</li>
+    <li id="ref-vershynin2025">Vershynin, R. <em>High-Dimensional Probability: An Introduction with Applications in Data Science</em>, 2nd edition. Cambridge University Press 2025.</li>
+    <li id="ref-williams2006">Williams, C. K. I. and Rasmussen, C. E. <em><a href="http://gaussianprocess.org/gpml/">Gaussian Processes for Machine Learning</a></em>. MIT Press 2006.</li>
+    <li id="ref-garnett2023">Garnett, R. <em><a href="https://bayesoptbook.com/">Bayesian Optimization</a></em>. Cambridge University Press 2023.</li>
+  </ol>
+</main>
+</body>
+</html>

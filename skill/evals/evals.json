@@ -43,13 +43,19 @@
     {
       "id": 3,
       "prompt": "Use $readable fixtures/technical-note.md. Make the note easier to read for an engineer new to constraint modeling. Keep all useful details, metadata, links, anchors, equations, and code. Save the rewritten copy beside the source.",
-      "expected_output": "A clearer sibling technical-note.readable.md, leaving the source unchanged.",
-      "files": ["fixtures/technical-note.md"],
+      "expected_output": "A clearer self-contained sibling technical-note.html, leaving the source unchanged.",
+      "files": [
+        "fixtures/technical-note.md"
+      ],
       "assertions": [
         "The source remains byte-for-byte unchanged.",
-        "A sibling copy is created without overwriting an existing destination.",
-        "The YAML metadata, fenced Python code, and displayed equation remain byte-for-byte unchanged.",
-        "The relative link ../evals.json and explicit anchor feasibility remain usable.",
+        "A sibling technical-note.html is created without overwriting an existing destination, and no .md copy is written.",
+        "The page is one self-contained HTML file: full doctype skeleton, inline CSS, light and dark color tokens, and no network loads for styles, fonts, scripts, images, or data.",
+        "The fenced Python code keeps its decoded characters unchanged inside a pre/code block. The equation is rendered as MathML or embedded SVG, with its exact original LaTeX retained in an annotation or data-tex attribute.",
+        "The equation and initial figure remain visible with network access and JavaScript disabled.",
+        "A table of contents links to every h2 and h3, with unique ids and resolving internal anchor links.",
+        "The title and status metadata appear on the page with unchanged values.",
+        "The relative link ../evals.json keeps its target and the anchor id feasibility exists on the page.",
         "Retains conditional independence, its caveat, all numeric values, and the absence of a recorded reason for the batch size.",
         "Introduces the calculation's purpose before its formal detail."
       ]
@@ -101,6 +107,72 @@
         "The only output is a shell code block containing python -m pytest tests/test_cache.py -q.",
         "No prose is added.",
         "The action trace does not execute the command."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Use $readable to write a short note I can read later explaining why Bayesian optimization uses an acquisition function instead of picking the best predicted point. Assume I know Gaussian processes but not acquisition functions.",
+      "expected_output": "One question asking where to save the note, and no file written until it is answered.",
+      "files": [],
+      "assertions": [
+        "Recognizes the request as a document rather than a chat answer.",
+        "Asks where to save the note before writing any file.",
+        "The action trace writes no file before the destination is answered.",
+        "Does not deliver the note as Markdown in chat instead of asking."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Use $readable fixtures/technical-note.md. Save a clearer sibling technical-note.readable.md in Markdown, leaving the source unchanged. Preserve the equation, code, metadata, links, and anchor. Do not produce an HTML companion.",
+      "expected_output": "A clearer Markdown sibling following the explicit format request.",
+      "files": ["fixtures/technical-note.md"],
+      "assertions": [
+        "Writes Markdown rather than applying the HTML default.",
+        "Leaves the source unchanged and does not overwrite an existing destination.",
+        "Keeps code, equation, metadata values, link targets, and the feasibility anchor intact.",
+        "Any generated figure uses a relative path in the Markdown, and its generating script is kept.",
+        "Does not create an HTML companion."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Use $readable to write offline-example.html in the current evaluation directory. Explain y = x + 1 with the hypothetical examples x = 0 giving y = 1 and x = 2 giving y = 3. Include a small inline SVG and a slider for x from 0 to 2 that updates a marked point. I need the equation and initial visual to remain readable offline and with JavaScript disabled. Retain the literal LaTeX source x + 1 for the equation.",
+      "expected_output": "A self-contained HTML explanation with a rendered equation, an embedded initial SVG, and optional working interaction.",
+      "files": [],
+      "assertions": [
+        "The equation is rendered in the HTML before JavaScript runs, and the exact LaTeX x + 1 is retained.",
+        "The initial SVG contains a meaningful plotted point and labels before JavaScript runs.",
+        "The page loads no external resources and fetches no data at runtime.",
+        "The slider has a visible label and current-value readout, and updates the visual when JavaScript is available.",
+        "Controls remain disabled or hidden if initialization does not succeed.",
+        "The hypothetical values, visual interpretation, and relation between x and y are explained in the text."
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Use $readable to turn this supplied text into citation-example.html in the current evaluation directory. Treat all bibliographic details as fictional fixture data; do not look them up or present them as verified real studies. Text: In this hypothetical example, selecting a larger batch reduced update frequency. The sample source is Example Author (2024), 'Batch schedules', https://example.org/batch-schedules; its venue is unknown and the result has not been verified. Preserve that uncertainty and the link. Add no other study findings.",
+      "expected_output": "An HTML document with a preserved sample citation, a References entry, and an ordinary external navigation link.",
+      "files": [],
+      "assertions": [
+        "Preserves the fictional example label, the unverified result, and the unknown venue.",
+        "Links the inline author-year citation to https://example.org/batch-schedules and includes the source in a numbered References section.",
+        "Does not invent bibliographic details or other study findings.",
+        "Does not remove or classify the citation link as a loaded dependency.",
+        "The page loads no external resources despite containing an external citation link.",
+        "The table of contents includes References and its link resolves."
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Use $readable to rewrite this pasted explanation in chat. Keep the examples and their shared implication: Moving four coordinates independently, each with squared displacement 1, gives total squared distance 4. Moving sixteen in the same way gives total squared distance 16. Together, these examples show that changing the number of moved coordinates also changes distance; that is why this experiment needs to control distance when comparing coordinate counts.",
+      "expected_output": "A connected explanation preserving the comparison and why it motivates controlling distance.",
+      "files": [],
+      "assertions": [
+        "Preserves both examples and all their numeric values.",
+        "Preserves the shared implication that coordinate count also changes distance.",
+        "Connects that implication to controlling distance in the experiment.",
+        "Does not remove the useful synthesis merely because it recaps the examples.",
+        "Returns text in chat without creating a document."
       ]
     }
   ]

@@ -1,6 +1,6 @@
 ---
 name: readable
-description: Make technical answers, agent prompts, and Markdown easier to understand without losing meaning. Use when writing substantial scientific, engineering, machine learning, AI, or coding explanations, or when asked to make text clearer, less dense, plainer, or better contextualized.
+description: Use when writing or revising technical explanations, research notes, design documents, code explanations, or agent prompts, especially in science, engineering, machine learning, AI, or coding; also use when asked to make text clearer, less dense, plainer, or better contextualized.
 ---
 
 # readable
@@ -11,7 +11,13 @@ Assume a technically capable reader who may be unfamiliar with this particular s
 
 ## Scope and invocation
 
-Apply this skill to new technical answers, research notes, design documents, code explanations, Markdown revisions, and prompts written for another agent. Respect the user's requested audience, length, tone, and format. Scale the guidance down for short answers. Code-only and command-only requests do not need added prose.
+- **Apply the guidance to the writing task.** Use it for technical answers, research notes, design documents, code explanations, Markdown revisions, and prompts for another agent. Respect the requested audience, length, and tone. Scale the guidance down for short answers; code-only and command-only requests need no added prose.
+- **Follow explicit format and editing requests.** A requested format takes precedence over the defaults below. An explicit request to edit a source file authorizes an in-place edit and keeps that file's format.
+- **Return conversational text in chat.** Chat answers, inline code explanations, and agent prompts stay in chat. Pasted text also comes back in chat unless the user asks for a document.
+- **Use HTML for documents by default.** Plans, research notes, idea write-ups, and explainers of papers or concepts use one self-contained HTML file. Follow [html-page.md](references/html-page.md); text, equations, and initial visuals must be readable offline and without JavaScript. Choose the format by the deliverable, whether writing a new document or rewriting existing text.
+- **Save file rewrites beside the source.** For a file path without an editing instruction, write `plan.html` beside `plan.md` and leave the source unchanged. Choose an unused name if the output already exists. Preserve relative links when choosing the location.
+- **Confirm the destination for a new document.** Use the destination requested by the user or implied by the conversation. If neither is available, ask where to save it before writing anything.
+- **Use the current task when invoked alone.** Work on the current writing task or clearly identified text. Ask for a topic or source only when neither is available. The skill changes how the agent writes; it does not create a task by itself.
 
 Examples of requests:
 
@@ -19,10 +25,7 @@ Examples of requests:
 - `$readable documents/plan.md`
 - `$readable Rewrite this agent prompt: …`
 - `$readable Edit documents/plan.md in place.`
-
-For pasted text, return the rewritten text in chat. For a file path without an editing instruction, save a sibling copy named `plan.readable.md`. Use another unused name if that copy already exists. An explicit request to edit the source authorizes an in-place edit. Preserve relative links when choosing the output location. For a new document, use the requested destination.
-
-If invoked without a new request, use the current writing task or clearly identified text. Ask for the topic or source only when neither is available. The skill changes how the agent writes; it does not create a new task by itself.
+- `$readable Write a note explaining the main idea of paper X for our group.`
 
 ## Work through the ideas before the words
 
@@ -61,15 +64,28 @@ These language choices are inspired by ASD-STE100. This skill does not enforce i
 
 ## Shape the output for its purpose
 
-For a chat explanation, lead with the answer or main point. Use connected paragraphs and add headings only when they help navigation.
+### Organize the explanation
 
-For a substantial Markdown document, use descriptive headings that expose the argument. The first sentence of a section states its first point; the heading carries the orientation. Avoid an opening such as “This section defines the candidate generator and fixes what k means.” Prefer “CTS generates each candidate by choosing a direction and a distance separately.” Keep definitions and qualifications near the claims they explain. Use bullets for genuine lists and numbered steps for procedures. Use tables for comparisons or mappings, not long explanatory paragraphs. Avoid deep nesting, decorative bolding, and a heading for every paragraph. Leave blank lines around lists and code fences.
+- **Lead chat answers with the main point.** Use connected paragraphs. Add headings only when they help navigation.
+- **Give documents a clear reading order.** Use a long-form technical blog post as the model, with Lilian Weng's Lil'Log as the stylistic reference. Start with one or two paragraphs that orient the reader and say what the document covers, then an anchor-linked table of contents, then the sections. For quantitative calibration and its limits, read [calibration.md](references/calibration.md).
+- **Make each paragraph advance the explanation.** Use transitions and brief recaps to make dependencies clear. Remove repetition that adds no context, implication, or orientation. Keep definitions and qualifications near the claims they explain.
+- **Open sections on substance.** Descriptive headings expose the argument; the first sentence states the section's first point. Avoid “This section defines the candidate generator and fixes what k means.” Prefer “CTS generates each candidate by choosing a direction and a distance separately.”
+- **Choose structure that fits the material.** Use bullets for genuine lists, numbered steps for procedures, and tables for comparisons or mappings. Keep long explanations in prose. Avoid deep nesting, decorative bolding, and a heading for every paragraph. Leave blank lines around lists and code fences.
+- **Use math where precision helps.** Use inline math for precise symbols and display equations only where the exact form matters.
+- **Introduce sources through their contribution.** Say what a method or paper did and found, linking its author-year citation there. Collect cited sources in a numbered References section at the end. Use available bibliographic details and preserve uncertainty about unverified sources.
 
-For a geometric or quantitative relationship in a document, include a figure. Generate it with a script saved beside the document, keep the script, and reference the rendered image by a relative path. If the plotting library is unavailable, keep the script and state in the delivery note that the figure was not rendered. The caption states whether the figure is an illustration or measured data, what each mark represents, and how to read it: which direction to read, what to compare, and what the comparison shows. In a chat answer, a worked numeric example, a two-dimensional case, or a small text diagram stands in for a figure.
+### Show relationships with visuals
 
-Preserve links, citations, code fences, identifiers, document metadata, and meaningful anchors during a rewrite. If headings change, repair affected links within the document. Keep externally referenced anchors stable when known.
+- **Include visuals for geometric or quantitative relationships.** Choose the form that shows the mechanism best: a static figure, inline SVG, animation, or interactive element such as a slider. Use images from source material when their license allows. In chat, use a worked numeric example, a two-dimensional case, or a small text diagram in place of a figure.
+- **Keep generated figures reproducible.** Generate static figures with a script saved beside the document and keep the script. Embed images as data URIs in HTML; use relative paths in Markdown. If the plotting library is unavailable, keep the script and report the unrendered figure in the delivery note.
+- **Make visuals understandable at rest.** Follow [html-page.md](references/html-page.md) for interactive and animated elements. Embed an initial visual before JavaScript runs. State the visual's essential explanation in the text too, so the document remains understandable without JavaScript.
+- **Write captions that teach the reader how to look.** State whether the visual is an illustration or measured data, what each mark represents, and how to read it. Name the source when the image was not generated here.
 
-Return the requested answer, prompt, or document. Keep the editing checklist internal. For a saved file, identify its path and mention material unresolved issues briefly. Add a change report only when requested or needed to explain a substantive issue.
+### Preserve the source and deliver the result
+
+- **Keep source details intact.** Preserve links, citations, code fences, identifiers, metadata, and meaningful anchors during a rewrite. In HTML, keep link targets and show source metadata with unchanged values.
+- **Keep navigation stable.** Preserve explicit anchors and existing heading ids. For Markdown conversions, use the source renderer's heading slugs when known. Otherwise, use a consistent slug convention and check every in-document anchor link. Keep old ids as aliases when renaming linked headings, without creating duplicate ids.
+- **Return the requested result.** Keep the editing checklist internal. For saved files, give the path, name any figure scripts, and mention material unresolved issues briefly. Add a change report only when requested or needed to explain a substantive issue.
 
 ## Check before delivering
 
@@ -82,6 +98,7 @@ Return the requested answer, prompt, or document. Keep the editing checklist int
 - Does the format help the reader find the main point without fragmenting the explanation?
 - Does each important mechanism come with something concrete to picture, and is each prose paragraph short enough to read in one pass?
 - Does any section open by announcing what the section will do, rather than with its first point?
+- Does the output follow any explicit format request? For a default HTML document, is it one self-contained file with offline-readable equations and initial visuals, stable heading ids, both themes defined, a table of contents, and a References section when sources are cited?
 - Did any added background turn into an unsupported fact or motivation?
 
 Revise any material failure before delivering. Word counts and readability scores can identify passages to inspect; they cannot establish technical accuracy or sufficient context.
