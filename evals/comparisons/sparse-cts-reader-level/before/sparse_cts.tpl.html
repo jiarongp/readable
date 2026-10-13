@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sparse Moves at Equal Distance</title>
+<meta name="description" content="Idea notes: does the number of coordinates a candidate moves matter on its own, once the distance it travels is held fixed, for Gaussian-process Thompson sampling in high-dimensional Bayesian optimization?">
+<meta name="author" content="Jiarong Pan">
+<meta name="date" content="2026-10-13">
+<meta name="source" content="docs/readable/sparse_cts.md; docs/plan/sparse_cts_plan.md; docs/PROGRESS.md (evidence as of 2026-09-23)">
+<style>
+/* KaTeX 0.16.22 stylesheet (MIT licence, (c) Khan Academy) with its woff2 fonts embedded as data URIs,
+   so equations render offline without a system math font. */
+{{KATEX_CSS}}
+</style>
+<style>
+/* Layout: one serif reading column; measured figures sit on white plates that stay light in dark mode,
+   because the PNGs have their own white background. Wide figures may extend past the column. */
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --fg:#1B2430; --fg-muted:#5C6773; --rule:#D3DAE1;
+  --accent:#245C8E; --accent-soft:#DCE8F3; --warm:#B8651F; --warm-soft:#F6E6D6;
+  --code-bg:#E8ECF0; --plate:#FFFFFF; --plate-rule:#D3DAE1;
+  --font-body:"Charter","Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"DejaVu Serif",serif;
+  --font-ui:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181D; --surface:#1C2127; --fg:#E4E7EA; --fg-muted:#9AA3AD; --rule:#2E353D;
+    --accent:#7FB2E0; --accent-soft:#1F3246; --warm:#E09A55; --warm-soft:#3A2A1C;
+    --code-bg:#22282F; --plate:#F2F3F4; --plate-rule:#3A424B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181D; --surface:#1C2127; --fg:#E4E7EA; --fg-muted:#9AA3AD; --rule:#2E353D;
+  --accent:#7FB2E0; --accent-soft:#1F3246; --warm:#E09A55; --warm-soft:#3A2A1C;
+  --code-bg:#22282F; --plate:#F2F3F4; --plate-rule:#3A424B; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.65 var(--font-body);
+  padding-block:40px 96px;padding-inline:16px}
+main{max-width:72ch;margin:0 auto}
+h1,h2,h3{font-family:var(--font-ui);line-height:1.2;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:2rem;margin:.2em 0 .3em}
+h2{font-size:1.45rem;margin-top:2.6em;padding-top:.7em;border-top:1px solid var(--rule)}
+h3{font-size:1.12rem;margin-top:1.8em}
+p{margin:.9em 0}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+strong{font-weight:650}
+code,pre{font-family:var(--font-mono);font-size:.9em}
+pre{background:var(--code-bg);padding:12px 14px;border-radius:4px;overflow-x:auto}
+code:not(pre code){background:var(--code-bg);padding:.1em .3em;border-radius:3px}
+.meta{font-family:var(--font-ui);font-size:.88em;color:var(--fg-muted);margin:0 0 1.6em}
+.meta span+span::before{content:" · "}
+nav.toc{font-family:var(--font-ui);font-size:.93em;border:1px solid var(--rule);background:var(--surface);
+  padding:14px 20px;margin:1.8em 0;border-radius:4px}
+nav.toc p{margin:.2em 0 .5em;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.8em;color:var(--fg-muted)}
+nav.toc ul{margin:.2em 0;padding-left:1.1em}
+nav.toc li{margin:.15em 0}
+nav.toc a{text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+.status{border-left:4px solid var(--accent);background:var(--surface);padding:12px 18px;margin:1.4em 0;border-radius:0 4px 4px 0}
+.status p{margin:.5em 0}
+.note{border-left:4px solid var(--warm);background:var(--warm-soft);padding:10px 16px;margin:1.2em 0;border-radius:0 4px 4px 0;font-size:.97em}
+.note p{margin:.4em 0}
+figure{margin:1.8em 0}
+figure.wide{width:min(100vw - 32px, 1040px);margin-left:50%;transform:translateX(-50%)}
+figure .plate{background:var(--plate);border:1px solid var(--plate-rule);border-radius:4px;padding:8px}
+figure img{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-family:var(--font-ui);font-size:.88em;line-height:1.5;color:var(--fg-muted);margin-top:.6em;max-width:72ch;margin-inline:auto}
+figcaption b{color:var(--fg);font-weight:600}
+.table-wrap{overflow-x:auto;margin:1.2em 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-family:var(--font-ui);font-size:.9em;width:100%}
+th,td{padding:.45em .7em;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--fg-muted);font-size:.85em;letter-spacing:.03em;text-transform:uppercase}
+td.num{text-align:right;white-space:nowrap}
+.tag{display:inline-block;font-family:var(--font-ui);font-size:.72em;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:.1em .5em;border-radius:3px;white-space:nowrap;vertical-align:middle}
+.tag.fact{background:var(--accent-soft);color:var(--accent)}
+.tag.pred{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent)}
+.tag.hyp{background:var(--warm-soft);color:var(--warm)}
+.tag.open{background:var(--code-bg);color:var(--fg-muted)}
+.tag.done{background:var(--accent-soft);color:var(--accent)}
+.tag.todo{background:var(--code-bg);color:var(--fg-muted)}
+.chain{list-style:none;padding:0;margin:1.4em 0;display:flex;flex-direction:column;gap:0}
+.chain li{display:grid;grid-template-columns:2.2em 1fr;gap:0 .8em;align-items:start}
+.chain .dot{width:2.2em;height:2.2em;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--font-ui);
+  font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.9em}
+.chain li.cond .dot{background:var(--fg-muted)}
+.chain .body{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:10px 14px;margin-bottom:.35em;min-width:0}
+.chain .body p{margin:.3em 0}
+.chain .q{font-family:var(--font-ui);font-weight:600}
+.chain .arrow{grid-column:1;justify-self:center;color:var(--fg-muted);font-family:var(--font-ui);line-height:1;padding:.1em 0 .45em}
+.math-display{overflow-x:auto;overflow-y:hidden;margin:1em 0;text-align:center;padding:.2em 0}
+.katex{font-size:1.06em}
+.katex-display{margin:0}
+.math-display .katex{font-size:1.16em}
+ol.references{padding-left:1.4em}
+ol.references li{margin:.5em 0;font-size:.95em}
+ul{padding-left:1.3em}
+li{margin:.3em 0}
+@media (max-width:600px){
+  body{font-size:16px}
+  h1{font-size:1.6rem}
+  figure.wide{width:100%;margin-left:0;transform:none}
+}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+
+<h1 id="title">Does moving fewer coordinates help once distance is held fixed?</h1>
+<p class="meta"><span>2026-10-13</span><span>about {{READ_MIN}} min read</span><span>idea notes for Jiarong Pan's sparse cylindrical Thompson sampling thread</span><span>rewritten from <code>docs/readable/sparse_cts.md</code>, <code>docs/plan/sparse_cts_plan.md</code> and <code>docs/PROGRESS.md</code>; evidence as of 2026-09-23</span></p>
+
+<p>Picture an optimizer tuning a system with 100 settings. Each round it proposes a new configuration near the best one found so far. It could change one setting, twenty, or all hundred. The trust-region methods that work best in high-dimensional Bayesian optimization change about twenty, and that rule has served well in practice. These notes are about a question the rule leaves open: is the benefit due to moving <em>few</em> coordinates, or to the <em>shorter step</em> that moving few coordinates happens to produce? In every standard sampler the two change together, so nobody can tell.</p>
+
+<p>The idea is to pull the two apart. A candidate generator with two independent dials, how many coordinates move and how far the candidate travels, lets us sweep the coordinate count with the distance held fixed. We then follow the coordinate count through three links: does a better candidate exist in the pool, does the Gaussian-process model pick it, and does the advantage survive repeated optimization. This document explains the idea, what a simple model predicts, what has been checked so far, and what is still a hypothesis. It is written for reading. The executable plan, with its decision rules and statistics, stays in <a href="../plan/sparse_cts_plan.md">the sparse cylindrical Thompson sampling plan</a>.</p>
+
+<div class="status">
+<p><b>Where the evidence stands.</b> Moving fewer coordinates can improve the best candidate in a random pool on an axis-aligned tilted plane, even when distance is held fixed. Controlled curved landscapes show why moving coordinates together can be necessary, and a diagnostic for that situation has passed its checks. <b>Nothing yet shows that a Gaussian process can exploit either effect, or that it helps repeated optimization.</b> Those are the next experiments, and they are the ones that decide whether the idea is a paper.</p>
+</div>
+
+<nav class="toc" aria-label="Contents">
+<p>Contents</p>
+<ul>
+<li><a href="#the-question">1. The question: two dials that existing samplers turn together</a>
+  <ul><li><a href="#why-existing-results-do-not-settle-it">Why existing results do not settle it</a></li></ul></li>
+<li><a href="#the-proposal">2. The proposal: one generator with independent dials</a>
+  <ul><li><a href="#the-coupled-twin">The coupled twin, a control that re-links the dials</a></li>
+      <li><a href="#how-a-candidate-is-chosen">How a candidate is chosen from the pool</a></li></ul></li>
+<li><a href="#what-a-tilted-plane-predicts">3. What a tilted plane predicts</a>
+  <ul><li><a href="#the-average-is-blind-only-the-tail-moves">The average is blind to the coordinate count; only the tail moves</a></li>
+      <li><a href="#measured-plane-results">Measured plane results</a></li>
+      <li><a href="#alignment-and-pool-size">Alignment and pool size change the answer</a></li></ul></li>
+<li><a href="#where-coordinates-must-move-together">4. Where coordinates must move together</a>
+  <ul><li><a href="#a-diagnostic-for-coordination">A diagnostic for coordination, checked on known cases</a></li>
+      <li><a href="#existence-is-not-coverage">A useful move can exist and still be missed by the pool</a></li></ul></li>
+<li><a href="#can-the-model-pick-it">5. The decisive link: can the model pick it?</a></li>
+<li><a href="#walls">6. Box walls, the confounder kept separate</a></li>
+<li><a href="#what-we-believe">7. What we believe, and how firmly</a></li>
+<li><a href="#how-the-idea-gets-tested">8. How the idea gets tested</a></li>
+<li><a href="#why-it-would-matter">9. Why it would matter, and what it is not</a></li>
+<li><a href="#where-things-stand">10. Where things stand</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+</nav>
+
+<h2 id="the-question">1. The question: two dials that existing samplers turn together</h2>
+
+<p>A configuration is a point, and each adjustable setting is one of its coordinates. The objective function scores a point, and here lower is better. The best point found so far is the <strong>incumbent</strong>. Each round the optimizer draws a <strong>pool</strong> of candidate points around the incumbent and lets a model choose one of them to evaluate. A candidate's <strong>support size</strong>, written {{m|k}}, is the number of coordinates it changes, out of {{m|d}} available. A <em>sparse</em> move changes a few; a <em>dense</em> move changes all of them. Neither word says how far the point travels.</p>
+
+<figure>
+<div class="plate">{{img:equal_distance.png|Two-dimensional sketch: on the left, changing a second coordinate by the same amount lengthens the move from 0.50 to 0.71; on the right both moves are scaled to the same length 0.50, so only the direction differs.}}</div>
+<figcaption><b>Illustration, not data.</b> Left: when each changed coordinate receives the same displacement, adding a second coordinate also lengthens the move, and the orange arrow leaves the dashed circle of radius 0.5. Right: when every direction is scaled to the same length, the two moves reach the same circle and differ only in how many coordinates they use. The idea is to compare pools built the right-hand way. Generated by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<p>The trust-region baseline TuRBO (<a href="https://arxiv.org/abs/1910.01739">Eriksson et al. 2019</a>) builds its pool with a rule usually called RAASP, for random axis-aligned subspace perturbation. Each coordinate is perturbed with probability about {{m|20/d}}, so roughly 20 coordinates move in high dimension, and each perturbed coordinate gets its own independent displacement. That construction ties the step length to the coordinate count. In the simplest version, where each of the {{m|k}} perturbed coordinates moves by an independent uniform amount in {{m|[-h, h]}}, the expected squared step is</p>
+
+{{d|\mathbb{E}\,\lVert \delta \rVert_2^2 = \frac{k\,h^2}{3},}}
+
+<p>so the typical step grows like {{m|\sqrt{k}}}. Going from 5 moving coordinates to 20 roughly doubles the typical distance. This is a fact about the simplified model rather than about every implementation, but it is the reason the familiar "20" belongs to a sampler in which support size also sets distance, and it is one reason sparse perturbations keep a search local.</p>
+
+<p>Cylindrical Thompson sampling, or CTS (<a href="https://github.com/HW-AI-Research/CTS-HDBO">Rashidi, Johnstonbaugh and Gao 2024</a>), goes the other way. It draws a direction and a distance separately, so distance is controlled, but its direction moves every coordinate. Between the two, nobody has swept the coordinate count with the distance held fixed. That is the sharp form of the question: <strong>after the distance is controlled, does the number of coordinates that move together change the quality of the candidates, what the model selects, and how the optimizer performs?</strong></p>
+
+<h3 id="why-existing-results-do-not-settle-it">Why existing results do not settle it</h3>
+
+<p>The closest existing comparison is in the ACTS paper (<a href="https://arxiv.org/abs/2604.08891">Fan and Pleiss 2026</a>). Its appendix varies the expected number of perturbed coordinates over 20, {{m|d/10}} and {{m|d}}, and reports that {{m|d/10}} has no appreciable effect while {{m|d}} is more variable. But its sampler changes several things at once. Each perturbed coordinate is drawn uniformly over the whole domain, so the step still grows with the count. The choice of coordinates is weighted by a sampled gradient, and the candidates sit inside a cone aligned with it. So a flat result there does not say what a plain, unsteered sweep with fixed distance would show.</p>
+
+<p>The repository's own earlier count sweep on the GP side answers a different question too. There, the sparse points only seeded the starting locations of an acquisition optimizer, which then moved them. The count described where that search started, not the candidate finally evaluated. Earlier results with classifier-based optimizers are also excluded: the classifier is a different selector, and this thread is about a Gaussian process with Thompson sampling only.</p>
+
+<h2 id="the-proposal">2. The proposal: one generator with independent dials</h2>
+
+<p>The generator makes two separate choices for each candidate: a direction that uses exactly {{m|k}} coordinates, and a distance drawn without reference to {{m|k}}. Starting from the incumbent {{m|c}}:</p>
+
+<ol>
+<li>Choose {{m|k}} coordinates at random, every subset of that size equally likely.</li>
+<li>Draw a random direction that uses only those coordinates, with no preferred orientation among them (a Gaussian on the chosen coordinates), and scale it to length one.</li>
+<li>Draw a distance uniformly between zero and a maximum radius {{m|R}}, and move that far along the direction.</li>
+</ol>
+
+<p>In symbols,</p>
+
+{{d|x = c + r\,v, \qquad \lVert v \rVert_2 = 1, \qquad \lvert \mathrm{supp}(v) \rvert = k, \qquad r \sim U(0, R).}}
+
+<p>Here {{m|x}} is the candidate, {{m|v}} its direction and {{m|r}} its distance, and {{m|U(0,R)}} means every distance between zero and {{m|R}} is equally likely. Because {{m|v}} has length one, the distance travelled is exactly {{m|r}} no matter how many coordinates {{m|v}} uses. A move of length 0.5 could change one coordinate by 0.5, or two coordinates by about 0.354 each, since {{m|\sqrt{0.354^2 + 0.354^2} \approx 0.5}}. For a paired comparison the same distance draws are reused across support sizes, so two pools at different {{m|k}} differ only in their directions.</p>
+
+<p>The two ends of the dial are familiar objects. At {{m|k = 1}} every candidate moves along a single coordinate axis. At {{m|k = d}} the direction is an isotropic Gaussian scaled to length one, which is exactly what CTS draws when no box wall is nearby. So {{m|k}} interpolates between coordinate moves and ordinary cylindrical Thompson sampling, with the same distance law throughout. This generator is built and checked: it lives in <code>optimizers/sparse_cts.py</code>, and its tests confirm that candidates change the requested number of coordinates, that directions have length one, that the distance equals the drawn {{m|r}}, and that the overlap between a random support and a set of relevant coordinates follows the expected (hypergeometric) law.</p>
+
+<h3 id="the-coupled-twin">The coupled twin, a control that re-links the dials</h3>
+
+<p>To show that separating the two dials matters, the plan includes a control that puts the link back. The <strong>coupled twin</strong> uses the same coordinate choice, the same direction and the same distance draws, but multiplies each step by {{m|\sqrt{k/d}}}:</p>
+
+{{d|x = c + r\,\sqrt{k/d}\;v .}}
+
+<p>Its mean squared step grows linearly with {{m|k}}, as under RAASP-style samplers, and at {{m|k = d}} it coincides with the main generator. Along the twin's support-size profile the only thing that changes is the coupling of step length to coordinate count. If the twin's performance curve across {{m|k}} differs from the distance-controlled one, the difference is attributable to step length rather than to the number of coordinates.</p>
+
+<figure>
+<div class="plate">{{img:coupled_twin.png|Distance from the incumbent against support size: the distance-controlled pool is flat at mean R/2, while the coupled twin grows like the square root of k over d and meets it only at k equal to d.}}</div>
+<figcaption><b>Illustration of the two distance laws, not a measured result.</b> Solid lines are mean distance, dashed lines the largest possible distance, shading the range of drawn distances, at {{m|d = 100}} and {{m|R = 0.5}}. The distance-controlled pool travels the same distances at every support size. The twin uses the same draws scaled by {{m|\sqrt{k/d}}}, so at {{m|k = 25}} it travels half as far and only at {{m|k = d}} do the two coincide. Generated by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<h3 id="how-a-candidate-is-chosen">How a candidate is chosen from the pool</h3>
+
+<p>The optimizer never sees the true objective at the candidates. It fits a <strong>Gaussian process</strong>, or GP, to the evaluations collected so far. The GP gives a central estimate of the objective at any point together with an uncertainty around it. <strong>Thompson sampling</strong> draws one whole plausible function from that model, scores every candidate under it, and evaluates the candidate with the lowest sampled value. The new observation then joins the data for the next round.</p>
+
+<figure class="wide">
+<div class="plate">{{img:thompson_selection.png|A one-dimensional Gaussian process with observations, its mean and uncertainty band, one Thompson sample, a candidate pool within radius R of the current best, and the picks made by the sample and by the mean.}}</div>
+<figcaption><b>Illustration in one dimension, not a measured result.</b> The blue band is the GP's uncertainty around its mean. The orange curve is one Thompson sample, a whole function the model considers plausible. Ticks on the bottom axis mark the candidate pool within radius {{m|R}} of the current best. The orange star is where that sample is lowest and would be evaluated next; the blue diamond is where the posterior mean is lowest, a mean-only selector used later as a control. The dotted grey curve is the truth, which the optimizer never sees, so a pick can look good under the sample and be mediocre in truth. Generated by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<p>This gives a support size two separate ways to help. It could produce a pool that <em>contains</em> a better candidate, and it could produce a pool from which the model <em>chooses</em> more reliably. The experiments measure both. The optimizer studied here keeps the radius {{m|R}} fixed and uses no trust region, the shrinking and expanding search box that TuRBO adapts over time. A fixed radius means the distance policy is truly identical across support sizes, which makes the optimizer a mechanism test rather than a benchmark entry. The radius is treated as an experimental factor (0.1, 0.5 and 2.0 in the unbounded experiments) rather than tuned, because any rule that picks a radius from the results would favour some support size.</p>
+
+<h2 id="what-a-tilted-plane-predicts">3. What a tilted plane predicts</h2>
+
+<p>Before any curved landscape or model error, we can ask what the coordinate count should do in the simplest situation. Close to the incumbent a smooth objective looks like a tilted plane: moving by {{m|r v}} changes the objective by about {{m|r\, g^\top v}}, where {{m|g}} is the gradient at the incumbent. Suppose for this calculation that we could evaluate the true objective at every candidate and pick the best. The improvement of that best candidate is the pool's <strong>oracle gain</strong>; "oracle" means perfect selection, with no GP involved. For a pool of {{m|M}} candidates on a plane,</p>
+
+{{d|I_k = \max_{m \le M}\; r_m\,\big(-g^\top v_m\big),}}
+
+<p>where {{m|-g^\top v_m}} measures how directly candidate {{m|m}} points downhill and {{m|r_m}} is its distance. The oracle gain is the maximum of {{m|M}} random products, which makes it an <em>extreme-value</em> statistic, and that is the whole story of what follows.</p>
+
+<h3 id="the-average-is-blind-only-the-tail-moves">The average is blind to the coordinate count; only the tail moves</h3>
+
+<p>Suppose only {{m|s}} of the {{m|d}} coordinates affect the objective. A natural guess is that sparse directions put more of their movement into those relevant coordinates. On average they do not. If the direction is isotropic on its support and the support is chosen at random, the expected fraction of squared direction length that lands on the relevant coordinates is</p>
+
+{{d|\mathbb{E}\,\lVert P_A v \rVert^2 = \frac{s}{d} \quad \text{for every } k,}}
+
+<p>where {{m|P_A}} projects onto the relevant coordinates. A <em>random</em> candidate is equally good at every support size. What changes is how that movement is distributed across candidates. A dense direction gives every candidate a small relevant component. A sparse direction gives most candidates none at all, and the few that touch a relevant coordinate put a large share of their move into it. With thousands of candidates and best-of-pool selection, a few strong hits can beat many weak ones.</p>
+
+<figure class="wide">
+<div class="plate">{{img:hit_strength_tradeoff.png|Strip plots of per-candidate predicted gain for k equal to 1, 8 and 100 on a plane with two relevant coordinates: sparse pools have few non-zero candidates but the widest spread, and the best candidate is highest at k equal to 1.}}</div>
+<figcaption><b>Illustration computed from the plane model, one pool draw per row.</b> Each dot is one of 5,000 candidates placed by its predicted gain; grey dots miss both relevant coordinates and sit at zero. At {{m|k = 1}} only 2% of candidates hit, but a hit spends its whole move on the slope, so the best candidate (orange star) is best. At {{m|k = 100}} every candidate touches the relevant coordinates, yet the spread is narrow because most of each move goes to the 98 irrelevant ones. Setting: {{m|d = 100}}, two relevant coordinates, {{m|R = 1}}, unit gradient. Generated by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<p>The trade-off can be made quantitative. A single-coordinate candidate helps only when its one coordinate is relevant and it moves in the descending direction, which happens with probability {{m|s/(2d)}}, and then its gain is its distance divided by {{m|\sqrt{s}}}. So the {{m|k = 1}} gain is capped at {{m|R/\sqrt{s}}} no matter how large the pool is. A dense candidate's gain is roughly {{m|a_M R/\sqrt{d}}}, where {{m|a_M}} is the expected best of {{m|M}} draws and grows like {{m|\sqrt{2 \ln M}}}, about 2.9 at {{m|M = 5000}}. Single-coordinate moves therefore win when {{m|s}} is below about {{m|d/a_M^2}}, roughly 12 relevant coordinates out of 100 at this pool size, and intermediate supports interpolate.</p>
+
+<h3 id="measured-plane-results">Measured plane results</h3>
+
+<p>A Monte Carlo study checked this prediction at {{m|d = 100}} with 5,000 candidates, maximum radius 1 and a unit gradient whose relevant entries all have the same magnitude. If sparse moves already win on a plane, that win needs no explanation involving curvature, interactions or model learning. The plane is the baseline against which everything later is judged.</p>
+
+<figure class="wide">
+<div class="plate">{{img:plane_gain_profiles.png|Best pool gain versus support size for planes with 2, 10 and 50 relevant coordinates before rotation; axis-aligned and rotated curves on the same scales.}}</div>
+<figcaption><b>Measured simulations; higher is better.</b> Within each panel read left to right as more coordinates move; compare blue circles with orange squares to see the effect of rotating the objective. Points are means and error bars ±1 standard error over 20 repetitions. With two relevant coordinates and an axis-aligned slope, small supports have a large advantage. With 50 the aligned curve is nearly flat from moderate support sizes onward. Source: <a href="../../studies/figures/sparse_cts/step0_oracle_gain.csv">the plane-study CSV</a> from <a href="../../studies/sparse_cts_step0.py">the simulation script</a>; plot from <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Relevant coordinates {{m|s}}</th><th>Best observed support size {{m|k}}</th><th>Gain at that {{m|k}} ± SE</th><th>Dense gain ({{m|k = 100}}) ± SE</th></tr></thead>
+<tbody>
+<tr><td class="num">2</td><td class="num">1</td><td class="num">0.692 ± 0.004</td><td class="num">0.310 ± 0.008</td></tr>
+<tr><td class="num">10</td><td class="num">2</td><td class="num">0.388 ± 0.007</td><td class="num">0.303 ± 0.008</td></tr>
+<tr><td class="num">50</td><td class="num">32</td><td class="num">0.294 ± 0.008</td><td class="num">0.290 ± 0.005</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The standard error after each ± says how much the average would vary if the study were repeated; it is uncertainty in the mean, not the spread of individual candidates. With two relevant coordinates the sparse pool wins by a factor of two. With 50, the gains are the same within their uncertainty, so the "best observed" 32 in the last row is the largest of several noisy estimates and should not be read as an optimum.</p>
+
+<h3 id="alignment-and-pool-size">Alignment and pool size change the answer</h3>
+
+<p>Rotating the objective changes the picture completely. Think of a downhill direction that runs along one coordinate axis. After a rotation it runs diagonally, and following it requires several coordinates to change at once. The landscape is the same shape; only its alignment with the optimizer's coordinates differs.</p>
+
+<figure>
+<div class="plate">{{img:rotation_alignment.png|A two-dimensional plane before and after a 45-degree rotation: the four single-coordinate moves of length R and the best move in any direction, with the best single-coordinate gain dropping from 1.00 to 0.71.}}</div>
+<figcaption><b>Illustration in two dimensions, not data.</b> Grey lines are level sets of the plane; the dashed circle is distance {{m|R = 1}}. Orange triangles are the four moves that change one coordinate by the full distance; the blue star is the best move in any direction. On the left the slope runs along an axis, so one coordinate captures all of it. On the right the same slope runs diagonally and the best single-coordinate move captures only {{m|1/\sqrt{2} \approx 0.71}} of it. In 100 dimensions a rotated slope is spread over nearly all coordinates. Generated by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<p>After a full random rotation the gradient is spread evenly over all coordinates whatever {{m|s}} was, so every rotated case gives the same prediction: a profile that is flat to mildly increasing in {{m|k}}, with single-coordinate moves lowest. The difference is small. A 400-repetition rerun puts the rotated gain at 0.266 to 0.267 for {{m|k = 1}} against 0.292 to 0.296 for {{m|k = 100}} across the three rotated cases (<a href="../../studies/figures/sparse_cts/reps400/step0_oracle_gain.csv">the 400-repetition CSV</a>); the 20-repetition curves above resolve it only when the rotated cases are pooled.</p>
+
+<p>Pool size matters differently from radius. A larger pool gives more chances to draw a favourable direction, but single-coordinate moves saturate at their ceiling {{m|R \max_j \lvert g_j \rvert}}, while dense moves keep improving like {{m|\sqrt{2 \ln M}}}. So the best support size drifts upward with the pool size, and a later experiment must compare each pool size with its own prediction. The radius, by contrast, multiplies every candidate's gain by the same factor on a plane, so it cannot change the ranking of support sizes there. If the best support size moves with the radius on a real function, that is curvature speaking.</p>
+
+<figure class="wide">
+<div class="plate">{{img:pool_size_scaling.png|Best pool gain versus pool size for k equal to 1, 8 and 100 on axis-aligned planes with 2, 10 and 50 relevant coordinates; the single-coordinate curve flattens at its ceiling while the dense curve keeps rising.}}</div>
+<figcaption><b>Measured plane simulations; higher is better.</b> Read each panel left to right as the pool grows from 256 to 5,000 candidates. The dotted line is the single-coordinate ceiling, which equals {{m|1/\sqrt{s}}} here because the relevant coordinates share the slope equally. With 50 relevant coordinates the {{m|k = 1}} curve sits at its ceiling from the smallest pool; with 10 the {{m|k = 8}} curve overtakes it between 256 and 5,000 candidates. Means ±1 standard error over 20 repetitions; {{m|d = 100}}, {{m|R = 1}}, unit gradient. Source and plot as in the previous measured figure.</figcaption>
+</figure>
+
+<div class="note">
+<p><b>What the plane tells the idea.</b> Three things. First, on a plane the entire support-size effect comes from how sparse the slope is and how well it aligns with the coordinate axes; a small intrinsic dimension alone does not make sparse moves good. Second, on a real function the plane prediction is therefore the baseline, and only departures from it, from curvature, from valleys, from late-stage incumbents, count as findings. The plan computes that baseline afresh at every saved point from the actual local slopes, because real incumbents do not have the equal-magnitude gradients used above. Third, the pool size is part of the answer, not a nuisance parameter.</p>
+</div>
+
+<h2 id="where-coordinates-must-move-together">4. Where coordinates must move together</h2>
+
+<p>How many coordinates matter is a different question from whether they must move together. The function {{m|\sum_{i=1}^{100} x_i^2}} depends on every coordinate, yet a single-coordinate move always makes progress on it. A two-dimensional function rotated into 100 dimensions has intrinsic dimension two, yet a useful move in the optimizer's coordinates touches almost all of them. A curved valley such as Rosenbrock's needs its coordinates to move in a particular combination to follow the floor. The hypothesis is that <strong>the effect of the support size depends on how strongly the objective's coordinates must cooperate locally</strong>, not on how many of them are relevant.</p>
+
+<p>The prediction is stated carefully. A random five-coordinate support equals a given five-coordinate group with probability one in about 75 million, so a pool of 5,000 never contains the exact group, and no optimum "at the group size" is expected. What a valley should do is shift the useful support size <em>upward</em> relative to an additive function with the same number of relevant coordinates. The direction of the shift is the claim; its location is not.</p>
+
+<h3 id="a-diagnostic-for-coordination">A diagnostic for coordination, checked on known cases</h3>
+
+<p>To know whether a given point of a landscape is in such a regime, the plan measures three best achievable improvements from that point, all within the same radius:</p>
+
+<ul>
+<li><strong>Axis gain:</strong> the most a single-coordinate move can improve the objective.</li>
+<li><strong>Separate-effect gain:</strong> the most a joint move would gain if we scored it by adding up what each of its coordinate changes achieves alone. This is what the move would be worth if the coordinates did not interact.</li>
+<li><strong>Joint gain:</strong> the most any move within the radius actually improves the true objective.</li>
+</ul>
+
+<p>Two labels follow. A point is <strong>coordination-required</strong> when the axis gain is at most a tenth of the joint gain: one coordinate at a time captures almost nothing of what is available. It is <strong>interaction-driven</strong> when the separate-effect gain is at most half the joint gain: the joint move gains at least twice the sum of its parts, which a plane or an additive function can never do. The second label exists because the first can be met without any interaction, for instance late on an additive function where many coordinates each hold a small residual gain that one move cannot collect. That is a real reason for dense pools to win late, but it is not the valley mechanism.</p>
+
+<figure class="wide">
+<div class="plate">{{img:coordination_explained.png|Blue improving regions are unreachable along the saddle's axes and form a narrow curved sliver on Rosenbrock; bars below compare axis and separate-effect gains with joint gains.}}</div>
+<figcaption><b>Controlled functions, not optimizer trajectories.</b> Start at the black point and stay inside the dashed circle of radius 0.5. Blue regions improve the objective; tan regions worsen it. On the saddle, both axes stay in the tan region, so no single-coordinate move helps while the diagonal does. On Rosenbrock an axis makes a little progress and a joint move reaches far along the valley. The bars set each panel's joint gain to 100%, with raw gains printed beside them. Gains from <a href="../../studies/figures/sparse_cts/coordination_check.csv">the controlled-check CSV</a>; plot by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<p>These three numbers come from numerical searches, so the diagnostic was first checked on cases whose answers are known. All checks passed on 2026-09-22, at radius 0.5 in the function's own coordinates:</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Controlled case</th><th>Result</th><th>What it checks</th></tr></thead>
+<tbody>
+<tr><td>Saddle at the origin, in 2-D and embedded in 100-D</td><td>axis = separate-effect = 0; joint = 0.21875</td><td>Detects a joint escape when no isolated coordinate move helps.</td></tr>
+<tr><td>Rosenbrock at {{m|(-1, 1)}}</td><td>axis = separate-effect ≈ 0.01003; joint ≈ 0.9370</td><td>Detects a valley benefit even where one coordinate points downhill locally.</td></tr>
+<tr><td>Additive bump</td><td>separate-effect / joint = 1</td><td>Attributes joint improvement to adding independent effects, with no interaction.</td></tr>
+<tr><td>Tilted plane in 100-D</td><td>joint = separate-effect = {{m|R \lVert g \rVert}}</td><td>Recovers the analytical answer; the search respects the radius.</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The saddle is {{m|f(x,y) = x^2 + y^2 - 4xy + x^4 + y^4}}. Along an axis, {{m|f(t,0) = t^2 + t^4 \ge 0}}, so leaving the origin along either coordinate cannot help; along the diagonal, {{m|f(t,t) = -2t^2 + 2t^4}}, which is negative for small {{m|t}}. The improvement lives entirely in the interaction term. Rosenbrock at {{m|(-1,1)}} is the more instructive case for this idea. Its gradient there is {{m|(-4, 0)}}, so a plane model would call a single-coordinate move optimal. But that direction leaves the curved valley almost immediately, and the joint gain is about 93 times the axis gain at this radius. A locally downhill direction need not stay useful over a finite move, which is exactly why the plane prediction must be checked rather than assumed.</p>
+
+<h3 id="existence-is-not-coverage">A useful move can exist and still be missed by the pool</h3>
+
+<p>Embedding the saddle in 100 dimensions keeps the useful two-coordinate move available but hides it among 98 inert coordinates. A candidate must include both useful coordinates, move them in the right relative direction, and put enough of its distance into them. This turns a geometry question into a candidate-generation question.</p>
+
+<figure class="wide">
+<div class="plate">{{img:saddle_pool_coverage.png|On the embedded saddle, the fraction of improving candidates rises with support size, while the mean best gain peaks at an intermediate tested support and stays well below the best possible joint gain.}}</div>
+<figcaption><b>Measured toy pools</b> from <a href="../../studies/figures/sparse_cts/coordination_check.csv">the controlled-check CSV</a>, generated by <a href="../../studies/sparse_cts_coordination_check.py">the coordination harness</a>; {{m|d = 100}}, 5,000 candidates, {{m|R = 0.5}}, five repeats. Left: the fraction of candidates that improve. Right: the mean and the smallest of the five best-in-pool gains; the dotted line is what a perfect joint search achieves. No standard errors were saved, so the intermediate peak is descriptive only.</figcaption>
+</figure>
+
+<p>At {{m|k = 1}} no pool improves, because no candidate can move both useful coordinates. At {{m|k \ge 8}} every repeat contains an improving candidate. Yet the dense pools' larger share of improving points does not give the best candidate: the mean best gain is about 0.067 at {{m|k = 16}} and 0.026 at {{m|k = 100}}. Including the right coordinates more often is only half the problem; concentrating enough displacement in a useful direction is the other half. This does not identify 16 as an optimal support size, with five repeats and no uncertainty interval. It does show that <em>a good move existing</em>, <em>the pool containing one</em>, and, as the next section argues, <em>the model picking one</em> are three different events.</p>
+
+<p>On the actual grouped benchmark used in the plan, the diagnostic has only been run at hand-picked points so far. At three random interior points the separate-effect gain was 1.2 to 1.4 times the joint gain, meaning the isolated effects <em>over</em>-predicted the joint move. At a point reached by 100 steps of gradient descent, axis over joint was about 0.047 and separate-effect over joint about 0.063, which satisfies both labels. So the valley regime exists on that landscape, at one constructed point. Whether a Bayesian optimizer actually visits such points is unknown, and that gap is the reason the plan freezes points from saved optimizer runs rather than random ones.</p>
+
+<h2 id="can-the-model-pick-it">5. The decisive link: can the model pick it?</h2>
+
+<p>An oracle inspects every true value and takes the best. The optimizer sees only its fitted model. The CTS paper contains a vivid example of the difference (literature context still to be verified against the primary source): in 500 dimensions a RAASP pool of 5,000 contains about eight candidates that move both coordinates of an embedded two-dimensional problem, yet the points the sampler actually selects form a cross, most moving neither useful coordinate and the rest moving one. The probability that a good candidate exists is not the probability that the posterior sample selects it. Something between generation and selection decides, and that is the link this idea stands or falls on.</p>
+
+<figure class="wide">
+<div class="plate">{{img:selection_gap_explained.png|Hypothetical comparisons of oracle and Thompson-selected gains: a better pool can lose its advantage in selection, and equally good pool maxima can yield different selected gains.}}</div>
+<figcaption><b>Illustration only; no selection results exist yet.</b> Blue stars are the best true gains available in each pool; orange circles are the true gains of the candidates Thompson sampling chose. The connecting segment is the selection gap. Left: the tested support has the better maximum, but the model's pick is worse than the dense pick. Right: the maxima tie, yet the tested support gives the better selected point. Generated by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<p>The <strong>selection gap</strong> is the oracle gain minus the true gain of the candidate the model selected. The figure shows the two ways it can change the verdict. A pool with better candidates can lose its advantage in selection. And two pools with equally good best candidates can differ in how many near-best candidates they hold; a noisy selector picks more reliably from a deep pool. That second case is why a flat oracle profile does not end the study, and it is why the plan counts near-best candidates per pool and treats a <em>selection advantage</em> as a result in its own right, independent of an oracle advantage.</p>
+
+<p>A second control splits the gap into two causes. Selecting by the GP's posterior mean alone, with no sampled function, costs nothing beyond the fit. If the mean-only pick keeps an advantage that the Thompson pick loses, the loss is due to the sampling noise rather than to the model's central estimate; if the mean-only pick also fails, the model's estimate is part of the problem. The plan records both.</p>
+
+<p>There is a reason to expect the selector itself to have a support-size preference, and it is held as a hypothesis, not a premise. Under a stationary kernel with one shared lengthscale {{m|\ell}}, a step of length {{m|r}} is at kernel distance {{m|r^2/\ell^2}} from the incumbent whatever {{m|k}} is, so each candidate's own uncertainty is blind to the support size to first approximation. But Thompson sampling picks the maximum of a <em>joint</em> draw over the pool, and the pools differ in how correlated their candidates are: at {{m|k = 1}} about 50 of 5,000 candidates share each coordinate and sit on two rays, while at {{m|k = d}} every candidate has its own direction. If sparse pools are more correlated, the maximum of their sampling noise is smaller, and the exploration bonus of Thompson sampling would favour dense pools even with a perfect mean. This is not a theorem; distinct directions do not give independent values when the lengthscale is large against the radius. The plan measures the within-pool covariance directly and names correlation as the cause only when the measured covariance differs by {{m|k}} in the predicted direction. Under learned per-coordinate lengthscales the kernel distance is {{m|k}}-aware as well, which is why the pick's posterior variance and kernel distance are logged too.</p>
+
+<p>One check exists so far, in a regime where none of this bites: on a linear objective with 200 observations at {{m|d = 100}}, both a shared-lengthscale GP and a per-coordinate one made the Thompson pick equal to the oracle pick at all eight support sizes. That is one observation where the posterior noise near the incumbent is negligible, not a general result. The informative regime is the opposite one: few data relative to {{m|d}}, curvature, valley floors. The selection test is therefore run on <em>frozen</em> states, the data and fitted GP saved from real runs together with identical pools, so that a difference in selected gain is attributable to selection and not to the different trajectories that different choices would create.</p>
+
+<h2 id="walls">6. Box walls, the confounder kept separate</h2>
+
+<p>A box boundary can quietly undo the distance control. If a direction reaches a wall before the drawn distance, the candidate cannot travel the full range. In 100 dimensions a random point has some coordinate within about {{m|1/(2d)}} of a wall, and a dense direction always includes that coordinate, so dense rays exit the box early: in a simulation at random incumbents the median exit radius was 0.09 for dense directions against 0.50 for single-coordinate moves and 0.28 at {{m|k = 16}}. Sparse supports rarely include the wall-adjacent coordinate. In a box, sparse support is itself a wall-avoidance device, an alternative to CTS's truncated direction, and the realised distance depends on {{m|k}} again.</p>
+
+<figure class="wide">
+<div class="plate">{{img:wall_truncation.png|Left: a two-dimensional box with a start near the right wall, showing one single-coordinate move stopped by the wall, one travelling the full radius along it, and a diagonal move stopped early. Right: simulated mean allowed distance against support size for a random start and for a start with every coordinate near a wall.}}</div>
+<figcaption><b>Illustration, not optimizer snapshots.</b> Left: the shaded region is what stays reachable within {{m|R = 0.5}} inside the box; any move whose direction points into the nearby wall is cut short. Right: mean of the allowed distance, the smaller of {{m|R}} and the distance to the wall along the drawn direction, over 3,000 random unit directions at {{m|d = 100}}. From a random start (blue) dense moves keep less distance. From a start with every coordinate 0.05 from a wall (orange), mid-size supports lose the most and dense moves recover some distance because each coordinate carries only a small share of the step. Generated by <a href="../../studies/plot_sparse_cts_readable.py">the readable-figures script</a>.</figcaption>
+</figure>
+
+<p>Because of this, the main experiments run without walls, on synthetic functions defined on all of space so that candidates may leave the unit cube. The bounded setting is a robustness check in which the realised distance is reported as a covariate and nothing is attributed to {{m|k}}. When walls are present the generator follows CTS's rule: the drawn distance is scaled to the room available along the ray, so that no candidate lands exactly on a wall. An earlier version capped the distance at the wall instead, which parked candidates on the boundary and manufactured a pile-up of incumbents there; that was an implementation artefact, found and fixed.</p>
+
+<h2 id="what-we-believe">7. What we believe, and how firmly</h2>
+
+<p>The plan keeps a ledger that labels every statement by how it is known. Here it is in plain language, ordered from established to speculative.</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Statement</th><th>Status</th><th>What would move it</th></tr></thead>
+<tbody>
+<tr><td>The generator changes exactly {{m|k}} coordinates, travels exactly {{m|r}}, and overlaps a relevant set as the hypergeometric law says.</td><td><span class="tag fact">fact</span></td><td>Nothing; tests pass.</td></tr>
+<tr><td>Support size and distance are independent controls in the interior; in a box the realised distance depends on {{m|k}}.</td><td><span class="tag fact">fact</span></td><td>The wall study measures the size of the box effect.</td></tr>
+<tr><td>The average share of movement on the relevant coordinates is {{m|s/d}} at every {{m|k}}.</td><td><span class="tag fact">fact</span></td><td>Nothing; it follows from isotropy.</td></tr>
+<tr><td>On a plane, small supports win on sparse axis-aligned slopes, rotated profiles are flat to mildly increasing, and the best support drifts upward with pool size.</td><td><span class="tag pred">prediction</span></td><td>Calibration on saved snapshots against their own local slopes.</td></tr>
+<tr><td>Sparse pools carry an advantage beyond the plane model ("rare strong hits" on curved landscapes).</td><td><span class="tag hyp">hypothesis</span></td><td>Departures of true pool gain from the plane prediction at frozen points.</td></tr>
+<tr><td>A connected valley shifts the useful support size upward relative to an additive function with the same {{m|s}}.</td><td><span class="tag hyp">hypothesis</span></td><td>Late snapshots on the grouped landscape that the diagnostic labels both ways.</td></tr>
+<tr><td>The GP with Thompson sampling carries a candidate advantage into its pick.</td><td><span class="tag hyp">hypothesis, decisive</span></td><td>The frozen selection test on two pre-named cases.</td></tr>
+<tr><td>Pools with equal best candidates differ in how reliably the GP picks from them.</td><td><span class="tag hyp">hypothesis</span></td><td>The same test, read for a selection advantage and the near-best counts.</td></tr>
+<tr><td>Sparse pools are more correlated under the posterior, so sampling noise favours dense pools.</td><td><span class="tag hyp">hypothesis</span></td><td>Measured pool covariance beside the mean-only control.</td></tr>
+<tr><td>The useful support size differs across landscapes or changes during a run.</td><td><span class="tag hyp">hypothesis</span></td><td>Early, middle and late profiles; the full-run readout on other landscapes.</td></tr>
+<tr><td>Decoupling support size from distance reveals an effect the coupled samplers hide.</td><td><span class="tag hyp">hypothesis</span></td><td>The coupled twin's profile against the distance-controlled one in full runs.</td></tr>
+<tr><td>There is no universally correct support size.</td><td><span class="tag open">open question</span></td><td>The fixed-{{m|k}} study across landscapes, stages and pool sizes.</td></tr>
+<tr><td>A pool mixing several support sizes, or a learned allocation over them, beats a fixed choice.</td><td><span class="tag open">deferred</span></td><td>Only after a full-run pass and a sign that one fixed {{m|k}} is not enough.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="how-the-idea-gets-tested">8. How the idea gets tested</h2>
+
+<p>One final optimization curve would not explain the mechanism, so the plan follows the chain one link at a time, from a prediction through candidate quality and model selection to full runs. Each link removes a different ambiguity, and each carries a pre-registered reading, written down before the data, so that a negative result is filed as a result with its scope rather than argued away.</p>
+
+<ol class="chain">
+<li><div class="dot">1</div><div class="body"><p class="q">Predict first <span class="tag done">done</span></p><p>Derive what the plane model says the best-of-pool gain should look like as a function of {{m|k}}, so later measurements are scored against a prediction rather than read for the first time.</p></div><div class="arrow">↓</div></li>
+<li><div class="dot">2</div><div class="body"><p class="q">Build and check the generator <span class="tag done">done</span></p><p>The generator, the fixed-radius optimizer around it, and the structured synthetic landscapes (additive bumps, grouped Rosenbrock valleys, rotated versions of both) defined on all of space.</p></div><div class="arrow">↓</div></li>
+<li><div class="dot">3</div><div class="body"><p class="q">Check the coordination diagnostic on known cases <span class="tag done">done</span></p><p>The saddle, the Rosenbrock valley, the additive bump and the plane, as in section 4.</p></div><div class="arrow">↓</div></li>
+<li><div class="dot">4</div><div class="body"><p class="q">Does a better candidate exist in the pool? <span class="tag todo">planned</span></p><p>Freeze the incumbent at early, middle and late points of saved runs (40 runs of the dense fixed-radius optimizer, 40 TuRBO runs as a secondary set, eight landscapes, five seeds). Evaluate every candidate with the true function. Compare the true best gain with the plane prediction at that point, count near-best candidates, run the coordination diagnostic, and measure the wall effect separately.</p></div><div class="arrow">↓</div></li>
+<li><div class="dot">5</div><div class="body"><p class="q">Does the model pick it? <span class="tag todo">planned, decisive</span></p><p>On the same frozen states and identical pools, fit the GP and compare the true gains of the oracle pick, the mean-only pick and the Thompson pick, with the pool covariance recorded. Two cases are named in advance: the grouped valley with groups of five and the additive function with ten relevant coordinates, both late in the run at radius 0.5. The support size to test is chosen on the TuRBO snapshots and judged on the primary ones, so the choice cannot inflate the result. A pass is a carried advantage or a selection advantage in either case.</p></div><div class="arrow">↓</div></li>
+<li class="cond"><div class="dot">6</div><div class="body"><p class="q">Does it survive repeated optimization? <span class="tag todo">conditional</span></p><p>Only after a pass: full runs at the nominated support size against dense sampling and against the coupled twin, five seeds with shared initial designs, judged on the final best value after 500 evaluations.</p></div><div class="arrow">↓</div></li>
+<li class="cond"><div class="dot">7</div><div class="body"><p class="q">Adapt the support size? <span class="tag todo">conditional</span></p><p>A pool mixing several support sizes, then learned allocation, only if the full runs show that one fixed choice loses somewhere or that the useful size changes with the stage of the run.</p></div></li>
+</ol>
+
+<p>Two rules run through the whole chain and are worth knowing even without the details. Every comparison is <em>paired</em>: the same distance draws across support sizes, the same frozen state across selectors, the same initial design across arms, so that randomness the method does not control is removed before anything is compared. And every difference is read against a threshold for what is too small to matter, a tenth of the best gain any pool achieves in that setting, with a wide interval reported as inconclusive rather than as "no effect". With five seeds per cell this is a screening study, and the plan says so.</p>
+
+<h2 id="why-it-would-matter">9. Why it would matter, and what it is not</h2>
+
+<p>Candidate geometry in a local Bayesian optimizer has four parts: where the pool is centred, how far it reaches, how many coordinates each candidate moves, and which ones. RAASP manipulates the last two with the reach entangled. CTS separates reach from direction but keeps directions dense. SAASBO and variable-selection methods learn which coordinates matter at the level of the surrogate, not the candidate (<a href="https://arxiv.org/abs/2103.00349">Eriksson and Jankowiak 2021</a>). BAxUS adapts the dimension of an embedded search space, which is not the support of a candidate (<a href="https://arxiv.org/abs/2304.11468">Papenmeier et al. 2022</a>). ACTS steers candidates with a posterior gradient and weights its coordinate mask by it. A recent reassessment of trust-region methods changes the lengthscale rather than the perturbation count (<a href="https://arxiv.org/abs/2604.22967">Tang and Paulson 2026</a>). What none of them isolates is <strong>support size as an independent scale, decoupled from distance and without gradient steering</strong>, and whether Thompson sampling can exploit that scale.</p>
+
+<p>The contribution at this stage is the mechanism question, not a new adaptive algorithm. If support size has an independent effect, it becomes a second scale to adapt beside the radius that trust regions already adapt, and the follow-up questions are what predicts the useful scale and whether a search can use several scales without knowing the right one in advance. If it has no independent effect, that is equally a contribution: the benefits attributed to sparse perturbations would then be located in distance, in walls, in pool size or in selection, and a paper on "the right number of coordinates" would be chasing a non-effect. The concentration-of-measure argument behind the plane prediction is the same one used in random-subspace derivative-free optimization (<a href="https://arxiv.org/abs/2608.17307">Cartis and Roberts</a>), and the plan cites it rather than rediscovering it.</p>
+
+<p>Several natural extensions are deliberately held back. The most obvious algorithm is a pool that allocates candidates across a grid of support sizes and lets one joint posterior sample choose among them, so that the selector decides how many coordinates move as well as where. Its extension is a distribution over support sizes that concentrates with evidence. Two further ideas would predict the useful support size from the surrogate: a participation ratio of the learned relevance weights, and posterior mixed second derivatives as an interaction graph. The first measures relevance rather than coordination (on the sum of squares every coordinate is relevant and single moves still work); the second is the right quantity in principle and very noisy at the data sizes of Bayesian optimization. None is built until fixed-support experiments show that support size changes candidate geometry, that this changes candidate quality, that the useful size varies enough for one fixed choice to be meaningfully worse, and that the GP can select from more than one scale. How often a mixed pool <em>selects</em> a support size is never evidence; only realised improvement is.</p>
+
+<h2 id="where-things-stand">10. Where things stand</h2>
+
+<p><strong>Done.</strong> The plane prediction with its Monte Carlo table; the structured synthetic landscapes; the generator and the fixed-radius Thompson-sampling optimizer with their contract tests; the coordination diagnostic with its harness checks; the wall rule corrected to CTS's; and three rounds of external review folded into the plan. The scripts for the wall study, the frozen-candidate analysis and a timing pilot of the selection test were written on 2026-09-23 against <a href="../plan/sparse_cts_step3_impl.md">an implementation note</a>, but have produced no outputs yet.</p>
+
+<p><strong>On disk but not analysed or logged.</strong> A one-seed pilot of the snapshot runs exists under <code>results/sparse_cts/</code>: seed 0 on the additive landscape with ten relevant coordinates and on the grouped landscape with groups of five, for both the dense fixed-radius optimizer and TuRBO, each a complete run of 530 evaluations, dated 2026-09-23. No number from it appears in these notes, and the progress log has no entry for it.</p>
+
+<p><strong>Not shown.</strong> Any candidate-quality advantage at points an optimizer actually visits, any selection advantage, and any effect on repeated optimization. The central questions remain open: does one support size work broadly, or does the useful count depend on landscape, stage and pool size; can the GP preserve a candidate-quality advantage, or produce a selection advantage of its own; and does separating distance from coordinate count improve sequential optimization at all?</p>
+
+<p><strong>Next in the plan, if the thread continues.</strong> Pilot one cell on the GPU for walltime, then collect the 40 plus 40 snapshot runs, run the wall study and the frozen-candidate analysis locally, time the selection test on a handful of snapshots, and only then run the selection grid. Paper-level positioning still needs primary-source checks of TuRBO's exact perturbation rule, CTS's construction, SAASBO and variable-selection BO's use of relevance, and BAxUS's subspace growth.</p>
+
+<h2 id="references">References</h2>
+<ol class="references">
+<li>Eriksson, Pearce, Gardner, Turner and Poloczek. "<a href="https://arxiv.org/abs/1910.01739">Scalable Global Optimization via Local Bayesian Optimization</a>." NeurIPS 2019. The TuRBO trust-region method and its perturbation rule; exact rule still to be verified against the implementation for paper-level claims.</li>
+<li>Rashidi, Johnstonbaugh and Gao. "Cylindrical Thompson Sampling for High-Dimensional Bayesian Optimization." AISTATS 2024, PMLR 238. Official code: <a href="https://github.com/HW-AI-Research/CTS-HDBO">HW-AI-Research/CTS-HDBO</a>. Verified against the paper PDF and the code in the project log; no arXiv identifier is recorded in the repository.</li>
+<li>Fan and Pleiss. "<a href="https://arxiv.org/abs/2604.08891">Adaptive Candidate Point Thompson Sampling</a>." AISTATS 2026, arXiv 2604.08891. The coupled, gradient-steered count ablation in its Appendix I.</li>
+<li>Cartis and Roberts. "<a href="https://arxiv.org/abs/2608.17307">Random-subspace derivative-free optimization</a>." arXiv 2608.17307. The concentration-of-measure argument behind the plane prediction; title as recorded in the plan, to be confirmed against the listing.</li>
+<li>Tang and Paulson. "<a href="https://arxiv.org/abs/2604.22967">Rethinking Trust Region Bayesian Optimization in High Dimensions</a>." arXiv 2604.22967. Scales the lengthscale rather than the perturbation count.</li>
+<li>Eriksson and Jankowiak. "<a href="https://arxiv.org/abs/2103.00349">High-Dimensional Bayesian Optimization with Sparse Axis-Aligned Subspaces</a>." UAI 2021. SAASBO, relevance learned at the surrogate level.</li>
+<li>Papenmeier, Nardi and Poloczek. "<a href="https://arxiv.org/abs/2304.11468">Increasing the Scope as You Learn: Adaptive Bayesian Optimization in Nested Subspaces</a>." NeurIPS 2022. BAxUS, adaptive embedded subspace dimension.</li>
+</ol>
+
+</main>
+</body>
+</html>

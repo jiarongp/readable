@@ -93,7 +93,7 @@ Paste the `<math>…</math>` element into the page (the surrounding `<span class
 
 Model the page on a long-form technical blog post such as Lil'Log. The parts, in order:
 
-1. **Title**, then one metadata line: date, estimated reading time (about 250 words a minute), author when known, and the source file for a rewrite.
+1. **Title**, then one metadata line: date, estimated reading time of the main path (about 250 words a minute, excluding collapsed details and References), author when known, and the source file for a rewrite.
 2. **Opening paragraphs** that orient the reader and say what the document covers. No heading above them.
 3. **Table of contents**: a nested list of anchor links to every h2 and h3, inside `<nav class="toc">`.
 4. **Sections** with topic headings. The first sentence of a section states its first point.
@@ -125,6 +125,8 @@ python3 -c 'import base64,sys;print("data:image/png;base64,"+base64.b64encode(op
 Set `width` and `height` to the image's pixel size so the layout does not jump while loading. If the plotting library is unavailable, keep the script, leave a placeholder paragraph where the figure belongs, and state in the delivery note that the figure was not rendered.
 
 **Inline SVG diagram.** For boxes, arrows, and simple geometry, write the SVG inline with a `viewBox`, explicit fills, and colors taken from the theme tokens so it reads in both themes. Leave room inside the `viewBox` for the outermost labels.
+
+**Optional detail.** A native `<details class="more"><summary>More detail: …</summary>…</details>` box holds material a first reading can skip. It opens without JavaScript and needs only a few lines of CSS (a left rule and a muted summary line in the theme tokens). Mechanical checks still cover its contents: equations, anchors and figures inside it must render when opened.
 
 **Interactive element or animation.** A slider that moves a parameter and redraws a curve, a stepper that walks through an algorithm, or an animation of a process are all welcome when they show something a static picture cannot. Rules:
 

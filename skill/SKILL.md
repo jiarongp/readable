@@ -29,7 +29,8 @@ Examples of requests:
 
 ## Work through the ideas before the words
 
-1. **Identify the purpose and reader.** Determine what the reader needs to understand or do. Infer background from the request and conversation. Ask only when missing information would materially change the result.
+1. **Identify the purpose and reader.** Determine what the reader needs to understand or do. For a chat answer, infer background from the request and conversation, and ask only when missing information would materially change the result.
+   **For a document, ask before writing.** Unless the conversation already answers them, ask the user up to three short questions: what the reader already knows (offer concrete levels for this topic), the target reading time, and what may be cut or moved to optional detail. A wrong reader level or length costs a full rewrite; asking costs one turn.
 2. **Identify what must survive.** In a rewrite, track claims, reasoning, assumptions, uncertainty, constraints, numbers, technical names, and references. For a prompt, also track instructions and authorization limits.
 3. **Find the dependencies.** Notice concepts that need an explanation before a later argument makes sense. Reorder the argument where useful, rather than paraphrasing each sentence independently.
 4. **Write with local context.** Usually move from purpose or problem, to intuition, to the technical term and mechanism, then to formal detail or an example. Choose only the parts the reader needs.
@@ -69,6 +70,8 @@ These language choices are inspired by ASD-STE100. This skill does not enforce i
 - **Lead chat answers with the main point.** Use connected paragraphs. Add headings only when they help navigation.
 - **Give documents a clear reading order.** Use a long-form technical blog post as the model, with Lilian Weng's Lil'Log as the stylistic reference. Start with one or two paragraphs that orient the reader and say what the document covers, then an anchor-linked table of contents, then the sections. For quantitative calibration and its limits, read [calibration.md](references/calibration.md).
 - **Make each paragraph advance the explanation.** Use transitions and brief recaps to make dependencies clear. Remove repetition that adds no context, implication, or orientation. Keep definitions and qualifications near the claims they explain.
+- **Keep the goal in view in long documents.** Readers forget the purpose as reading time grows. When a document runs past a few minutes, name its two to four guiding questions near the top, and open each section with one sentence that ties it back to the question it serves. A small tracker of those questions under each section heading, with the current one highlighted, helps the reader keep their place.
+- **Fit the agreed reading time.** Measure reading time on the main path. Move derivations, check tables, raw numbers and side cases that a first reading can skip into collapsed `<details>` boxes labelled "More detail: …", placed right after the claim they support. Keep each claim's conditions and uncertainty in the main text.
 - **Open sections on substance.** Descriptive headings expose the argument; the first sentence states the section's first point. Avoid “This section defines the candidate generator and fixes what k means.” Prefer “CTS generates each candidate by choosing a direction and a distance separately.”
 - **Choose structure that fits the material.** Use bullets for genuine lists, numbered steps for procedures, and tables for comparisons or mappings. Keep long explanations in prose. Avoid deep nesting, decorative bolding, and a heading for every paragraph. Leave blank lines around lists and code fences.
 - **Use math where precision helps.** Use inline math for precise symbols and display equations only where the exact form matters.
@@ -96,6 +99,7 @@ These language choices are inspired by ASD-STE100. This skill does not enforce i
 - Do equations and code remain exact, with useful explanations around them?
 - For a prompt, are the task, requirements, output, and authorization limits unchanged?
 - Does the format help the reader find the main point without fragmenting the explanation?
+- For a document, did the user confirm the reader's background and the target reading time, and does the main path fit that time? In a long document, can a reader who opens any section see which guiding question it serves?
 - Does each important mechanism come with something concrete to picture, and is each prose paragraph short enough to read in one pass?
 - Does any section open by announcing what the section will do, rather than with its first point?
 - Does the output follow any explicit format request? For a default HTML document, is it one self-contained file with offline-readable equations and initial visuals, stable heading ids, both themes defined, a table of contents, and a References section when sources are cited?
